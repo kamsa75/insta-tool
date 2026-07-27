@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>인스타 그라데이션 텍스트</title>
-<meta name="description" content="사진 하단에 검정 그라데이션과 흰색 볼드 텍스트를 얹어 인스타그램용 이미지를 만드는 도구. 모든 처리는 브라우저 안에서만 이루어집니다.">
+<meta name="description" content="사진 하단에 검정 그라데이션과 흰색 볼드 텍스트를 얹어 인스타그램용 이미지를 만드는 도구. 여러 장을 한 번에 만들 수 있고, 모든 처리는 브라우저 안에서만 이루어집니다.">
 <meta name="theme-color" content="#0d0d0f">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -46,6 +46,7 @@ h1 .dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg
 h1 small{font-weight:500;font-size:12px;color:#7c7c88;letter-spacing:0}
 
 /* ── 미리보기 ─────────────────────────────────────────────── */
+.previewWrap{display:flex;flex-direction:column;gap:10px}
 .stage{
   --ar:0.8; --maxh:47vh;
   position:relative; width:min(100%, calc(var(--maxh) * var(--ar))); aspect-ratio:var(--ar);
@@ -61,11 +62,43 @@ h1 small{font-weight:500;font-size:12px;color:#7c7c88;letter-spacing:0}
 }
 .empty svg{opacity:.5}
 .stage.has-img .empty{display:none}
+.busy{
+  position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.62);color:#e8e8ec;font-size:13px;font-weight:600;letter-spacing:-.01em
+}
+.busy[hidden]{display:none}
+
+/* ── 사진 썸네일 줄 ───────────────────────────────────────── */
+.strip{
+  --tar:0.8;
+  display:flex;gap:8px;overflow-x:auto;padding:3px 1px;margin:0 auto;max-width:100%;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch
+}
+.strip[hidden]{display:none}
+.strip::-webkit-scrollbar{display:none}
+.thumb{
+  position:relative;flex:0 0 auto;height:66px;width:calc(66px * var(--tar));
+  border-radius:9px;overflow:hidden;border:0;padding:0;background:#000;cursor:pointer;
+  opacity:.45;transition:opacity .15s;outline:2px solid transparent;outline-offset:-2px
+}
+.thumb canvas,.thumb img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.thumb[aria-current="true"]{opacity:1;outline-color:#f2f2f4}
+.thumb .n{
+  position:absolute;left:5px;top:3px;font-size:10px;font-weight:800;color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.95);pointer-events:none
+}
+.thumb .has{
+  position:absolute;right:5px;bottom:5px;width:6px;height:6px;border-radius:50%;
+  background:#4ade80;box-shadow:0 0 0 1.5px rgba(0,0,0,.55);display:none;pointer-events:none
+}
+.thumb.hastext .has{display:block}
 
 /* ── 컨트롤 공통 ───────────────────────────────────────────── */
 .card{background:#17171b;border:1px solid #232329;border-radius:14px;padding:14px}
 .label{font-size:12px;font-weight:600;color:#9a9aa6;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .label .val{color:#e8e8ec;font-variant-numeric:tabular-nums;font-weight:600}
+.label .which{color:#e8e8ec;font-weight:700;font-variant-numeric:tabular-nums}
+.label .which[hidden]{display:none}
 
 .seg{display:flex;gap:6px;background:#101014;border:1px solid #232329;border-radius:11px;padding:4px}
 .seg button{
@@ -87,6 +120,10 @@ h1 small{font-weight:500;font-size:12px;color:#7c7c88;letter-spacing:0}
 .btn.ghost{background:transparent;border-color:#2a2a32;color:#9a9aa6}
 .btn[disabled]{opacity:.4;pointer-events:none}
 .btn.sm{width:auto;padding:6px 11px;font-size:12px;font-weight:600;border-radius:8px}
+.btnrow{display:flex;gap:8px}
+.btnrow .btn{flex:1 1 0;width:auto;min-width:0}
+.btnrow .btn.narrow{flex:0 0 auto;width:auto;white-space:nowrap;padding-left:18px;padding-right:18px}
+.btnrow .btn.narrow[hidden]{display:none}
 
 textarea{
   width:100%;min-height:calc(5 * 1.4em + 24px);resize:vertical;background:#101014;color:#f2f2f4;
@@ -109,7 +146,7 @@ input[type=range]::-webkit-slider-thumb{
   border:0;margin-top:-10px;box-shadow:0 1px 4px rgba(0,0,0,.5)
 }
 input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:#33333c}
-input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#f2f2f4;border:0}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#f2f2f4;border:0}
 
 .row+.row{margin-top:16px;padding-top:16px;border-top:1px solid #232329}
 
@@ -124,16 +161,25 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
   width:100%;max-width:400px;background:#17171b;border:1px solid #262630;border-radius:18px;
   padding:16px;display:flex;flex-direction:column;gap:11px;max-height:92svh;overflow:auto
 }
-.sheet-inner img{
-  width:100%;max-height:46svh;object-fit:contain;border-radius:10px;background:#000;
-  display:block;-webkit-touch-callout:default
-}
 .sheet h2{font-size:14px;font-weight:700;margin:0}
+#resultList{
+  display:flex;flex-direction:column;gap:8px;max-height:44svh;overflow:auto;
+  -webkit-overflow-scrolling:touch
+}
+#resultList figure{margin:0;position:relative}
+#resultList img{
+  width:100%;display:block;border-radius:10px;background:#000;-webkit-touch-callout:default
+}
+#resultList .cap{
+  position:absolute;left:8px;top:8px;background:rgba(0,0,0,.62);color:#fff;
+  font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;pointer-events:none
+}
 
 .toast{
   position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 22px);
   background:#f2f2f4;color:#101014;font-size:13px;font-weight:700;padding:11px 18px;border-radius:999px;
-  z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .2s;pointer-events:none
+  z-index:60;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .2s;pointer-events:none;
+  max-width:calc(100% - 32px);text-align:center
 }
 .toast.show{opacity:1}
 
@@ -147,7 +193,7 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
 
   <!-- 1. 비율 토글 -->
   <div class="card">
-    <div class="label">비율</div>
+    <div class="label">비율 <span style="color:#6e6e7a;font-weight:500">모든 장에 공통 적용</span></div>
     <div class="seg" id="ratioSeg">
       <button type="button" data-ratio="1" aria-pressed="false">1 : 1 <span style="opacity:.6">1080×1080</span></button>
       <button type="button" data-ratio="0.8" aria-pressed="true">4 : 5 <span style="opacity:.6">1080×1350</span></button>
@@ -156,8 +202,11 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
 
   <!-- 2. 사진 선택 + 크롭 -->
   <div class="card">
-    <input type="file" id="file" accept="image/*" hidden>
-    <button type="button" class="btn" id="pick">사진 선택</button>
+    <input type="file" id="file" accept="image/*" multiple hidden>
+    <div class="btnrow">
+      <button type="button" class="btn" id="pick">사진 선택</button>
+      <button type="button" class="btn narrow" id="addMore" hidden>+ 추가</button>
+    </div>
     <div class="row">
       <div class="label">
         <span>확대 / 축소 <span style="color:#6e6e7a;font-weight:500">· 드래그·핀치로도 조정</span></span>
@@ -170,26 +219,30 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
     </div>
   </div>
 
-  <!-- 3. 미리보기 -->
-  <div class="stage" id="stage">
-    <canvas id="preview"></canvas>
-    <div class="empty">
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
-      </svg>
-      <div>위에서 사진을 선택하세요</div>
+  <!-- 3. 미리보기 + 썸네일 줄 -->
+  <div class="previewWrap">
+    <div class="stage" id="stage">
+      <canvas id="preview"></canvas>
+      <div class="empty">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+        </svg>
+        <div>위에서 사진을 선택하세요<br><span style="opacity:.75">여러 장을 한 번에 고를 수 있습니다</span></div>
+      </div>
+      <div class="busy" id="busy" hidden></div>
     </div>
+    <div class="strip" id="strip" hidden></div>
   </div>
 
   <!-- 4. 텍스트 입력 -->
   <div class="card">
     <div class="label">
-      <span>텍스트</span>
+      <span>텍스트 <span class="which" id="whichShot" hidden></span></span>
       <button type="button" class="btn sm ghost" id="clearText">지우기</button>
     </div>
     <textarea id="text" rows="5" spellcheck="false" autocapitalize="off"
       placeholder="여기에 문구를 입력하세요&#10;엔터로 줄을 나눕니다"></textarea>
-    <p class="hint">줄바꿈은 엔터로 직접 넣습니다. (자동 줄바꿈 없음)</p>
+    <p class="hint" id="textHint">줄바꿈은 엔터로 직접 넣습니다. (자동 줄바꿈 없음)</p>
   </div>
 
   <!-- 5. 슬라이더들 -->
@@ -225,11 +278,11 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
 <!-- 저장 시트 -->
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-inner">
-    <h2>이미지가 만들어졌어요</h2>
-    <img id="resultImg" alt="완성된 이미지">
-    <p class="hint" style="margin:0">사진 앱에 넣으려면 <b>이미지를 길게 눌러 ‘사진에 추가’</b>를 선택하거나, 아래 저장 버튼을 사용하세요.</p>
+    <h2 id="sheetTitle">이미지가 만들어졌어요</h2>
+    <div id="resultList"></div>
+    <p class="hint" style="margin:0" id="sheetHint">사진 앱에 넣으려면 <b>이미지를 길게 눌러 ‘사진에 추가’</b>를 선택하거나, 아래 저장 버튼을 사용하세요.</p>
     <button type="button" class="btn primary" id="shareBtn" hidden>사진 앱에 저장 / 공유</button>
-    <a class="btn" id="dlLink" download>파일로 다운로드</a>
+    <button type="button" class="btn" id="dlBtn">파일로 다운로드</button>
     <button type="button" class="btn ghost" id="closeSheet">닫기</button>
   </div>
 </div>
@@ -242,20 +295,31 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
 
 var $ = function(id){ return document.getElementById(id); };
 var clamp = function(v,a,b){ return v<a?a:(v>b?b:v); };
+var tick = function(){ return new Promise(function(r){ requestAnimationFrame(function(){ setTimeout(r,0); }); }); };
 
-/* ── 상태 (모든 값은 해상도와 무관한 비율로 저장 → 미리보기와 출력이 동일) ── */
+/* ── 전체 공통 설정 (모든 장에 동일하게 적용) ── */
 var state = {
-  img: null,          // 저장용 원본 (필요시 축소)
-  pimg: null,         // 미리보기용 축소본 (드래그/슬라이더를 부드럽게)
-  ratio: 0.8,         // 프레임 가로/세로 비 (1 = 1:1, 0.8 = 4:5)
-  zoom: 1,            // cover 기준 배율 (1 이상)
-  ox: 0, oy: 0,       // 프레임 폭/높이 대비 오프셋
-  gradH: 0.60,        // 그라데이션 높이 (이미지 높이 대비)
-  gradO: 0.75,        // 그라데이션 최대 불투명도
-  fontPx: 55,         // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
-  weight: 800,
-  text: ''
+  ratio: 0.8,      // 프레임 가로/세로 비 (1 = 1:1, 0.8 = 4:5)
+  gradH: 0.60,     // 그라데이션 높이 (이미지 높이 대비)
+  gradO: 0.75,     // 그라데이션 최대 불투명도
+  fontPx: 55,      // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
+  weight: 800
 };
+
+/* ── 사진 목록. 텍스트와 크롭은 장마다 따로 보관 ──
+   원본은 File 그대로 두고 필요할 때만 디코드한다 (아이폰 메모리 보호).
+   shot = { file, w, h, thumb, zoom, ox, oy, text }                        */
+var shots = [];
+var cur = 0;
+
+var MAX_SHOTS   = 20;    // 인스타 캐러셀 최대 장수
+var MAX_SRC     = 3000;  // 저장용 디코드 상한 (캔버스 메모리 한계 대비)
+var MAX_PREVIEW = 1400;  // 미리보기용 축소본
+var THUMB       = 320;   // 썸네일 (미리보기 로딩 중 임시 표시용으로도 씀)
+var PCACHE_MAX  = 3;     // 미리보기 축소본을 동시에 몇 장까지 들고 있을지
+
+var pcache = new Map();  // idx -> canvas
+var inflight = new Set();
 
 var SAFE_X = 0.07, SAFE_B = 0.07, LINE_H = 1.25;
 var FONT_STACK = "'NanumSquareNeo', -apple-system, 'Apple SD Gothic Neo', sans-serif";
@@ -267,35 +331,41 @@ var STOPS = (function(){
   return out;
 })();
 
+function cs(){ return shots[cur] || null; }
+function srcW(s){ return s.naturalWidth  || s.width; }
+function srcH(s){ return s.naturalHeight || s.height; }
+function outH(){ return state.ratio === 1 ? 1080 : 1350; }
+
 /* ── 이미지가 프레임 안에서 차지하는 비율 크기 ── */
-function drawFrac(){
-  var im = state.img;
-  if (!im) return {dw:1, dh:1};
-  var imAR = srcW(im) / srcH(im), AR = state.ratio;
+function drawFrac(sh){
+  if (!sh) return {dw:1, dh:1};
+  var imAR = sh.w / sh.h, AR = state.ratio;
   return imAR > AR
-    ? {dw: state.zoom * imAR / AR, dh: state.zoom}
-    : {dw: state.zoom, dh: state.zoom * AR / imAR};
+    ? {dw: sh.zoom * imAR / AR, dh: sh.zoom}
+    : {dw: sh.zoom, dh: sh.zoom * AR / imAR};
 }
 
-function clampOffsets(){
-  var f = drawFrac();
+function clampOffsets(sh){
+  if (!sh) return;
+  var f = drawFrac(sh);
   var mx = Math.max(0, (f.dw - 1) / 2), my = Math.max(0, (f.dh - 1) / 2);
-  state.ox = clamp(state.ox, -mx, mx);
-  state.oy = clamp(state.oy, -my, my);
+  sh.ox = clamp(sh.ox, -mx, mx);
+  sh.oy = clamp(sh.oy, -my, my);
 }
 
 /* ── 렌더 (미리보기와 최종 출력이 같은 함수를 사용) ── */
-function drawScene(ctx, W, H, src, hq){
+function drawScene(ctx, W, H, sh, src, hq){
   ctx.save();
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = '#000';
   ctx.fillRect(0,0,W,H);
+  if (!sh){ ctx.restore(); return; }
 
   if (src){
-    var f = drawFrac(), w = f.dw*W, h = f.dh*H;
+    var f = drawFrac(sh), w = f.dw*W, h = f.dh*H;
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = hq ? 'high' : 'medium';
-    ctx.drawImage(src, (W-w)/2 + state.ox*W, (H-h)/2 + state.oy*H, w, h);
+    ctx.drawImage(src, (W-w)/2 + sh.ox*W, (H-h)/2 + sh.oy*H, w, h);
   }
 
   var gh = H * state.gradH;
@@ -308,7 +378,7 @@ function drawScene(ctx, W, H, src, hq){
     ctx.fillRect(0, H-gh, W, gh);
   }
 
-  var lines = state.text.split('\n');
+  var lines = (sh.text || '').split('\n');
   while (lines.length && lines[lines.length-1].trim() === '') lines.pop();
   if (lines.length){
     var fs = state.fontPx * (W / 1080);
@@ -333,6 +403,27 @@ var pending = false;
 /* 화면상 프레임 영역(CSS px). 캔버스 비율이 선택 비율과 어긋나도 프레임은 항상 정확한 비율을 유지 */
 var frameBox = {x:0, y:0, w:1, h:1};
 
+function previewSrc(){
+  var sh = cs();
+  if (!sh) return null;
+  if (pcache.has(cur)) return pcache.get(cur);
+  ensurePreview(cur);
+  return sh.thumb;   // 큰 이미지를 읽는 동안엔 썸네일로 임시 표시
+}
+
+function ensurePreview(i){
+  if (pcache.has(i) || inflight.has(i) || !shots[i]) return;
+  inflight.add(i);
+  decodeFile(shots[i].file, MAX_PREVIEW).then(function(img){
+    inflight.delete(i);
+    if (!shots[i]) return;
+    pcache.delete(i);
+    pcache.set(i, img);
+    while (pcache.size > PCACHE_MAX) pcache.delete(pcache.keys().next().value);
+    if (i === cur) render();
+  }, function(){ inflight.delete(i); });
+}
+
 function render(){
   if (pending) return;
   pending = true;
@@ -355,7 +446,7 @@ function render(){
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
     ctx.translate(fx, fy);
-    drawScene(ctx, fw, fh, state.pimg || state.img, false);
+    drawScene(ctx, fw, fh, cs(), previewSrc(), false);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   });
 }
@@ -373,15 +464,7 @@ var fontsReady = (function(){
 })();
 fontsReady.then(render);
 
-/* ── 사진 선택 ── */
-var MAX_SRC = 3000;      // iOS 캔버스 메모리 한계 대비 원본 축소 상한
-var MAX_PREVIEW = 1400;  // 미리보기 전용 축소본 (저장 화질과 무관)
-
-/* 큰 원본을 매 프레임 축소 그리기 하면 슬라이더/드래그가 버벅임 →
-   미리보기용 축소본을 한 번만 만들어 두고 그것만 그린다. 저장은 항상 원본 사용. */
-function srcW(s){ return s.naturalWidth  || s.width; }
-function srcH(s){ return s.naturalHeight || s.height; }
-
+/* ── 이미지 디코드 / 축소 ── */
 function shrink(src, max){
   var sw = srcW(src), sh = srcH(src);
   var mx = Math.max(sw, sh);
@@ -397,33 +480,142 @@ function shrink(src, max){
   return c;
 }
 
-$('pick').addEventListener('click', function(){ $('file').click(); });
+function decodeFile(file, max){
+  return new Promise(function(res, rej){
+    var url = URL.createObjectURL(file);
+    var im = new Image();
+    im.onload  = function(){ URL.revokeObjectURL(url); res(shrink(im, max)); };
+    im.onerror = function(){ URL.revokeObjectURL(url); rej(new Error('decode failed')); };
+    im.src = url;
+  });
+}
+
+/* ── 사진 불러오기 ── */
+function busy(msg){
+  var b = $('busy');
+  if (msg == null){ b.hidden = true; b.textContent = ''; }
+  else { b.textContent = msg; b.hidden = false; }
+}
+
+$('pick').addEventListener('click', function(){ openPicker(false); });
+$('addMore').addEventListener('click', function(){ openPicker(true); });
+
+var appendMode = false;
+function openPicker(append){
+  if (!append && shots.length && shots.some(function(s){ return s.text.trim() !== ''; })){
+    if (!window.confirm('사진을 다시 고르면 지금까지 입력한 텍스트가 모두 사라집니다. 계속할까요?\n\n(기존 사진에 더 붙이려면 [+ 추가]를 쓰세요)')) return;
+  }
+  appendMode = append;
+  $('file').click();
+}
 
 $('file').addEventListener('change', function(e){
-  var f = e.target.files && e.target.files[0];
-  if (!f) return;
-  var url = URL.createObjectURL(f);
-  var im = new Image();
-  im.onload = function(){
-    URL.revokeObjectURL(url);
-    var full = shrink(im, MAX_SRC);
-    state.img  = full;
-    state.pimg = shrink(full, MAX_PREVIEW);
-    state.zoom = 1; state.ox = 0; state.oy = 0;
-    $('zoom').value = 100; $('zoomVal').textContent = '100%';
-    stage.classList.add('has-img');
-    $('save').disabled = false;
-    clampOffsets(); render();
-  };
-  im.onerror = function(){
-    URL.revokeObjectURL(url);
-    toast('사진을 불러오지 못했습니다');
-  };
-  im.src = url;
+  var files = Array.prototype.slice.call(e.target.files || [])
+                   .filter(function(f){ return f.type.indexOf('image/') === 0; });
   e.target.value = '';
+  if (files.length) loadFiles(files, appendMode);
 });
 
-/* ── 비율 토글 ── */
+function loadFiles(files, append){
+  var room = MAX_SHOTS - (append ? shots.length : 0);
+  var over = files.length > room;
+  files = files.slice(0, Math.max(0, room));
+  if (!files.length){ toast('최대 ' + MAX_SHOTS + '장까지 담을 수 있습니다'); return; }
+
+  if (!append){ shots = []; cur = 0; pcache.clear(); inflight.clear(); }
+  var startAt = shots.length;
+
+  busy('사진 불러오는 중… 0/' + files.length);
+  var i = 0;
+  (function next(){
+    if (i >= files.length){
+      busy(null);
+      if (over) toast('최대 ' + MAX_SHOTS + '장까지만 불러왔습니다');
+      if (!shots.length){ toast('사진을 불러오지 못했습니다'); buildStrip(); syncAll(); render(); return; }
+      cur = clamp(append ? startAt : 0, 0, shots.length - 1);
+      buildStrip(); syncAll(); ensurePreview(cur); render();
+      return;
+    }
+    busy('사진 불러오는 중… ' + (i+1) + '/' + files.length);
+    var f = files[i];
+    decodeFile(f, MAX_SRC).then(function(img){
+      shots.push({
+        file: f, w: srcW(img), h: srcH(img), thumb: shrink(img, THUMB),
+        zoom: 1, ox: 0, oy: 0, text: ''
+      });
+      if (shots.length - 1 === startAt) pcache.set(startAt, shrink(img, MAX_PREVIEW));
+    }).catch(function(){}).then(function(){
+      i++;
+      tick().then(next);
+    });
+  })();
+}
+
+/* ── 썸네일 줄 ── */
+function buildStrip(){
+  var st = $('strip');
+  st.innerHTML = '';
+  st.hidden = shots.length < 2;
+  st.style.setProperty('--tar', String(state.ratio));
+  shots.forEach(function(sh, i){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'thumb' + (sh.text.trim() ? ' hastext' : '');
+    b.setAttribute('data-i', i);
+    b.setAttribute('aria-current', String(i === cur));
+    b.setAttribute('aria-label', (i+1) + '번째 사진');
+    b.appendChild(sh.thumb);
+    var n = document.createElement('span'); n.className = 'n'; n.textContent = i+1;
+    var d = document.createElement('span'); d.className = 'has';
+    b.appendChild(n); b.appendChild(d);
+    st.appendChild(b);
+  });
+}
+
+$('strip').addEventListener('click', function(e){
+  var b = e.target.closest('button[data-i]');
+  if (b) setCur(parseInt(b.getAttribute('data-i'), 10));
+});
+
+function setCur(i){
+  if (i < 0 || i >= shots.length || i === cur) return;
+  cur = i;
+  Array.prototype.forEach.call($('strip').children, function(el, k){
+    el.setAttribute('aria-current', String(k === cur));
+  });
+  var el = $('strip').children[cur];
+  if (el && el.scrollIntoView) el.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'});
+  syncAll(); ensurePreview(cur); render();
+}
+
+function markText(i){
+  var el = $('strip').children[i];
+  if (el) el.classList.toggle('hastext', shots[i].text.trim() !== '');
+}
+
+/* ── 현재 장에 맞춰 UI 동기화 ── */
+function syncAll(){
+  var sh = cs(), n = shots.length;
+  stage.classList.toggle('has-img', n > 0);
+  $('save').disabled = n === 0;
+  $('save').textContent = n > 1 ? (n + '장 전체 저장') : 'PNG로 저장';
+  $('addMore').hidden = n === 0;
+  $('pick').textContent = n === 0 ? '사진 선택' : '사진 다시 선택';
+
+  var w = $('whichShot');
+  w.hidden = n < 2;
+  w.textContent = n < 2 ? '' : '· ' + (cur+1) + ' / ' + n + '번째 사진';
+  $('textHint').textContent = n < 2
+    ? '줄바꿈은 엔터로 직접 넣습니다. (자동 줄바꿈 없음)'
+    : '줄바꿈은 엔터로 직접 넣습니다. 텍스트와 크롭은 사진마다 따로 저장됩니다.';
+
+  $('text').value = sh ? sh.text : '';
+  var z = sh ? Math.round(sh.zoom * 100) : 100;
+  $('zoom').value = z;
+  $('zoomVal').textContent = z + '%';
+}
+
+/* ── 비율 토글 (전체 공통) ── */
 $('ratioSeg').addEventListener('click', function(e){
   var b = e.target.closest('button[data-ratio]');
   if (!b) return;
@@ -432,10 +624,12 @@ $('ratioSeg').addEventListener('click', function(e){
     x.setAttribute('aria-pressed', String(x === b));
   });
   stage.style.setProperty('--ar', String(state.ratio));
-  clampOffsets(); render();
+  $('strip').style.setProperty('--tar', String(state.ratio));
+  shots.forEach(clampOffsets);
+  render();
 });
 
-/* ── 폰트 굵기 ── */
+/* ── 폰트 굵기 (전체 공통) ── */
 $('weightSeg').addEventListener('click', function(e){
   var b = e.target.closest('button[data-w]');
   if (!b) return;
@@ -446,9 +640,25 @@ $('weightSeg').addEventListener('click', function(e){
   render();
 });
 
-/* ── 슬라이더 / 입력 ── */
-$('text').addEventListener('input', function(){ state.text = this.value; render(); });
+/* ── 텍스트 (장마다 따로) ── */
+$('text').addEventListener('input', function(){
+  var sh = cs();
+  if (!sh){ this.value = ''; return; }
+  sh.text = this.value;
+  markText(cur);
+  render();
+});
+$('clearText').addEventListener('click', function(){
+  var sh = cs();
+  if (!sh) return;
+  sh.text = '';
+  $('text').value = '';
+  $('text').focus();
+  markText(cur);
+  render();
+});
 
+/* ── 슬라이더 (전체 공통) ── */
 $('gh').addEventListener('input', function(){
   state.gradH = this.value / 100; $('ghVal').textContent = this.value + '%'; render();
 });
@@ -460,33 +670,31 @@ $('fs').addEventListener('input', function(){
   $('fsVal').textContent = state.fontPx + 'px';
   render();
 });
-$('clearText').addEventListener('click', function(){
-  var ta = $('text');
-  ta.value = ''; state.text = '';
-  ta.focus();
-  render();
-});
+
+/* ── 크롭 (장마다 따로) ── */
 $('zoom').addEventListener('input', function(){ setZoom(this.value / 100, 0.5, 0.5); });
 $('reset').addEventListener('click', function(){
-  state.zoom = 1; state.ox = 0; state.oy = 0;
+  var sh = cs();
+  if (!sh) return;
+  sh.zoom = 1; sh.ox = 0; sh.oy = 0;
   $('zoom').value = 100; $('zoomVal').textContent = '100%';
   render();
 });
 
-function outH(){ return state.ratio === 1 ? 1080 : 1350; }
-
 /* 프레임 정규좌표 (u,v)를 고정한 채 확대/축소 */
 function setZoom(z, u, v){
+  var sh = cs();
+  if (!sh) return;
   z = clamp(z, 1, 4);
-  var a = drawFrac();
-  var x0 = (1 - a.dw)/2 + state.ox, y0 = (1 - a.dh)/2 + state.oy;
+  var a = drawFrac(sh);
+  var x0 = (1 - a.dw)/2 + sh.ox, y0 = (1 - a.dh)/2 + sh.oy;
   var px = a.dw ? (u - x0) / a.dw : 0.5;
   var py = a.dh ? (v - y0) / a.dh : 0.5;
-  state.zoom = z;
-  var b = drawFrac();
-  state.ox = (u - px * b.dw) - (1 - b.dw)/2;
-  state.oy = (v - py * b.dh) - (1 - b.dh)/2;
-  clampOffsets();
+  sh.zoom = z;
+  var b = drawFrac(sh);
+  sh.ox = (u - px * b.dw) - (1 - b.dw)/2;
+  sh.oy = (v - py * b.dh) - (1 - b.dh)/2;
+  clampOffsets(sh);
   $('zoom').value = Math.round(z * 100);
   $('zoomVal').textContent = Math.round(z * 100) + '%';
   render();
@@ -504,24 +712,24 @@ function framePt(clientX, clientY){
 }
 
 cv.addEventListener('touchstart', function(e){
-  if (!state.img) return;
+  var sh = cs(); if (!sh) return;
   if (e.touches.length === 1){
     var p = framePt(e.touches[0].clientX, e.touches[0].clientY);
-    drag = { u:p.u, v:p.v, ox:state.ox, oy:state.oy };
+    drag = { u:p.u, v:p.v, ox:sh.ox, oy:sh.oy };
     pinch = null;
   } else if (e.touches.length === 2){
     var a = framePt(e.touches[0].clientX, e.touches[0].clientY);
     var b = framePt(e.touches[1].clientX, e.touches[1].clientY);
     var dx = (e.touches[0].clientX - e.touches[1].clientX);
     var dy = (e.touches[0].clientY - e.touches[1].clientY);
-    pinch = { d: Math.hypot(dx, dy) || 1, z: state.zoom, u:(a.u+b.u)/2, v:(a.v+b.v)/2 };
+    pinch = { d: Math.hypot(dx, dy) || 1, z: sh.zoom, u:(a.u+b.u)/2, v:(a.v+b.v)/2 };
     drag = null;
   }
   e.preventDefault();
 }, {passive:false});
 
 cv.addEventListener('touchmove', function(e){
-  if (!state.img) return;
+  var sh = cs(); if (!sh) return;
   if (pinch && e.touches.length === 2){
     var dx = (e.touches[0].clientX - e.touches[1].clientX);
     var dy = (e.touches[0].clientY - e.touches[1].clientY);
@@ -529,19 +737,20 @@ cv.addEventListener('touchmove', function(e){
     setZoom(pinch.z * (d / pinch.d), pinch.u, pinch.v);
   } else if (drag && e.touches.length === 1){
     var p = framePt(e.touches[0].clientX, e.touches[0].clientY);
-    state.ox = drag.ox + (p.u - drag.u);
-    state.oy = drag.oy + (p.v - drag.v);
-    clampOffsets(); render();
+    sh.ox = drag.ox + (p.u - drag.u);
+    sh.oy = drag.oy + (p.v - drag.v);
+    clampOffsets(sh); render();
   }
   e.preventDefault();
 }, {passive:false});
 
 function endTouch(e){
+  var sh = cs();
   if (!e.touches || e.touches.length === 0){ drag = null; pinch = null; }
-  else if (e.touches.length === 1){
+  else if (e.touches.length === 1 && sh){
     pinch = null;
     var p = framePt(e.touches[0].clientX, e.touches[0].clientY);
-    drag = { u:p.u, v:p.v, ox:state.ox, oy:state.oy };
+    drag = { u:p.u, v:p.v, ox:sh.ox, oy:sh.oy };
   }
 }
 cv.addEventListener('touchend', endTouch);
@@ -549,82 +758,147 @@ cv.addEventListener('touchcancel', endTouch);
 
 /* 데스크톱: 마우스 드래그 + 휠 줌 */
 cv.addEventListener('mousedown', function(e){
-  if (!state.img) return;
+  var sh = cs(); if (!sh) return;
   var p = framePt(e.clientX, e.clientY);
-  drag = { u:p.u, v:p.v, ox:state.ox, oy:state.oy };
+  drag = { u:p.u, v:p.v, ox:sh.ox, oy:sh.oy };
   e.preventDefault();
 });
 window.addEventListener('mousemove', function(e){
-  if (!drag || !state.img) return;
+  var sh = cs();
+  if (!drag || !sh) return;
   var p = framePt(e.clientX, e.clientY);
-  state.ox = drag.ox + (p.u - drag.u);
-  state.oy = drag.oy + (p.v - drag.v);
-  clampOffsets(); render();
+  sh.ox = drag.ox + (p.u - drag.u);
+  sh.oy = drag.oy + (p.v - drag.v);
+  clampOffsets(sh); render();
 });
 window.addEventListener('mouseup', function(){ drag = null; });
 cv.addEventListener('wheel', function(e){
-  if (!state.img) return;
+  if (!cs()) return;
   e.preventDefault();
   var p = framePt(e.clientX, e.clientY);
-  setZoom(state.zoom * (e.deltaY < 0 ? 1.08 : 1/1.08), p.u, p.v);
+  setZoom(cs().zoom * (e.deltaY < 0 ? 1.08 : 1/1.08), p.u, p.v);
 }, {passive:false});
 
 /* ── 저장 ── */
-var lastURL = null;
+var results = [];   // [{blob, name, url}]
 var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+function toBlob(c){
+  return new Promise(function(res){
+    if (c.toBlob) c.toBlob(res, 'image/png');
+    else res(dataURLtoBlob(c.toDataURL('image/png')));
+  });
+}
+
 $('save').addEventListener('click', function(){
   var btn = this;
-  if (!state.img) return;
+  if (!shots.length) return;
+  var total = shots.length;
   btn.disabled = true;
-  btn.textContent = '만드는 중…';
 
   fontsReady.then(function(){
-    var W = 1080, H = outH();
-    var c = document.createElement('canvas');
-    c.width = W; c.height = H;
-    drawScene(c.getContext('2d'), W, H, state.img, true);
+    var W = 1080, H = outH(), base = 'insta-' + stamp();
+    var made = [];
+    var i = 0;
 
-    var done = function(blob){
-      btn.disabled = false;
-      btn.textContent = 'PNG로 저장';
-      if (!blob){ toast('이미지 생성에 실패했습니다'); return; }
-      deliver(blob, W, H);
-    };
-    if (c.toBlob) c.toBlob(done, 'image/png');
-    else done(dataURLtoBlob(c.toDataURL('image/png')));
+    (function next(){
+      if (i >= total){
+        btn.disabled = false;
+        btn.textContent = total > 1 ? (total + '장 전체 저장') : 'PNG로 저장';
+        busy(null);
+        if (!made.length){ toast('이미지 생성에 실패했습니다'); return; }
+        deliver(made);
+        return;
+      }
+      var label = total > 1 ? ('만드는 중… ' + (i+1) + '/' + total) : '만드는 중…';
+      btn.textContent = label;
+      busy(label);
+
+      decodeFile(shots[i].file, MAX_SRC).then(function(full){
+        var c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        drawScene(c.getContext('2d'), W, H, shots[i], full, true);
+        return toBlob(c).then(function(blob){
+          c.width = c.height = 1;   // 캔버스 메모리 즉시 반납
+          if (blob){
+            made.push({
+              blob: blob,
+              name: total > 1
+                ? base + '-' + String(i+1).padStart(2,'0') + '.png'
+                : base + '-' + W + 'x' + H + '.png'
+            });
+          }
+        });
+      }).catch(function(){}).then(function(){
+        i++;
+        tick().then(next);
+      });
+    })();
   });
 });
 
-function deliver(blob, W, H){
-  if (lastURL) URL.revokeObjectURL(lastURL);
-  lastURL = URL.createObjectURL(blob);
+function deliver(list){
+  results.forEach(function(r){ URL.revokeObjectURL(r.url); });
+  results = list.map(function(r){ r.url = URL.createObjectURL(r.blob); return r; });
 
-  var name = 'insta-' + W + 'x' + H + '-' + stamp() + '.png';
-  var dl = $('dlLink');
-  dl.href = lastURL;
-  dl.setAttribute('download', name);
+  var n = results.length;
+  $('sheetTitle').textContent = n > 1 ? (n + '장이 만들어졌어요') : '이미지가 만들어졌어요';
 
-  var file = null, canShare = false;
+  var box = $('resultList');
+  box.innerHTML = '';
+  results.forEach(function(r, i){
+    var fig = document.createElement('figure');
+    var img = new Image();
+    img.src = r.url;
+    img.alt = (i+1) + '번째 완성 이미지';
+    fig.appendChild(img);
+    if (n > 1){
+      var cap = document.createElement('span');
+      cap.className = 'cap';
+      cap.textContent = (i+1) + ' / ' + n;
+      fig.appendChild(cap);
+    }
+    box.appendChild(fig);
+  });
+
+  var files = null, canShare = false;
   try {
-    file = new File([blob], name, {type:'image/png'});
-    canShare = !!(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share);
+    files = results.map(function(r){ return new File([r.blob], r.name, {type:'image/png'}); });
+    canShare = !!(navigator.canShare && navigator.canShare({files:files}) && navigator.share);
   } catch(_){}
 
-  if (canShare || isIOS){
-    $('resultImg').src = lastURL;
-    var sb = $('shareBtn');
-    sb.hidden = !canShare;
-    sb.onclick = function(){
-      navigator.share({files:[file]}).catch(function(){});
-    };
+  var sb = $('shareBtn');
+  sb.hidden = !canShare;
+  sb.textContent = n > 1 ? ('사진 앱에 ' + n + '장 저장 / 공유') : '사진 앱에 저장 / 공유';
+  sb.onclick = function(){ navigator.share({files:files}).catch(function(){}); };
+
+  $('dlBtn').textContent = n > 1 ? (n + '장 모두 다운로드') : '파일로 다운로드';
+  $('sheetHint').innerHTML = n > 1
+    ? '순서대로 <b>' + n + '장</b>이 만들어졌습니다. 저장한 뒤 인스타에서 <b>번호 순서대로</b> 고르세요.<br>사진 앱에 넣으려면 위 버튼을 쓰거나, 이미지를 길게 눌러 ‘사진에 추가’를 선택하세요.'
+    : '사진 앱에 넣으려면 <b>이미지를 길게 눌러 ‘사진에 추가’</b>를 선택하거나, 아래 저장 버튼을 사용하세요.';
+
+  if (canShare || isIOS || n > 1){
     $('sheet').hidden = false;
   } else {
-    dl.click();
+    downloadAll();
     toast('저장했습니다');
   }
 }
+
+function downloadAll(){
+  results.forEach(function(r, i){
+    setTimeout(function(){
+      var a = document.createElement('a');
+      a.href = r.url; a.download = r.name;
+      document.body.appendChild(a); a.click(); a.remove();
+    }, i * 350);
+  });
+}
+$('dlBtn').addEventListener('click', function(){
+  downloadAll();
+  toast(results.length > 1 ? (results.length + '장 다운로드를 시작했습니다') : '저장했습니다');
+});
 
 $('closeSheet').addEventListener('click', function(){ $('sheet').hidden = true; });
 $('sheet').addEventListener('click', function(e){ if (e.target === this) this.hidden = true; });
@@ -645,7 +919,7 @@ function toast(msg){
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1900);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2400);
 }
 
 /* ── 홈 화면 추가용 아이콘 / manifest (인라인 생성) ── */
@@ -696,9 +970,11 @@ try {
 
 /* ── 초기화 (기본값을 화면에 반영) ── */
 stage.style.setProperty('--ar', String(state.ratio));
+$('strip').style.setProperty('--tar', String(state.ratio));
 $('gh').value = Math.round(state.gradH * 100); $('ghVal').textContent = Math.round(state.gradH * 100) + '%';
 $('go').value = Math.round(state.gradO * 100); $('goVal').textContent = Math.round(state.gradO * 100) + '%';
 $('fs').value = state.fontPx;                  $('fsVal').textContent = state.fontPx + 'px';
+syncAll();
 render();
 
 })();
