@@ -11,6 +11,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="그라데이션">
+<!-- 제목용 나눔손글씨 하나손글씨. 전체 3.1MB라 글자 단위로 쪼갠 서브셋 버전을 씀
+     (실제로 쓴 글자가 든 조각만 내려받음) -->
+<link rel="stylesheet" type="text/css"
+      href="https://cdn.jsdelivr.net/gh/fonts-archive/NanumHanaSonGeurSsi/subsets/NanumHaNaSonGeurSsi-dynamic-subset.css">
 <style>
 /* ── 나눔스퀘어 네오 (Bold 700 / ExtraBold 800 / Heavy 900) ───────────── */
 @font-face{
@@ -79,8 +83,16 @@ h1 small{font-weight:500;font-size:12px;color:#7c7c88;letter-spacing:0}
 .thumb{
   position:relative;flex:0 0 auto;height:66px;width:calc(66px * var(--tar));
   border-radius:9px;overflow:hidden;border:0;padding:0;background:#000;cursor:pointer;
-  opacity:.45;transition:opacity .15s;outline:2px solid transparent;outline-offset:-2px
+  opacity:.45;transition:opacity .15s;outline:2px solid transparent;outline-offset:-2px;
+  -webkit-user-select:none;user-select:none
 }
+.thumb .del{
+  position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;
+  border:0;padding:0;margin:0;background:rgba(0,0,0,.66);color:#fff;
+  font-size:14px;line-height:1;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center
+}
+.thumb .del:active{background:rgba(220,60,60,.9)}
 .thumb canvas,.thumb img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 .thumb[aria-current="true"]{opacity:1;outline-color:#f2f2f4}
 .thumb .n{
@@ -133,6 +145,23 @@ textarea{
 }
 textarea:focus{border-color:#4a4a58}
 .hint{font-size:11.5px;color:#6e6e7a;margin:8px 0 0}
+
+#titleCard[hidden]{display:none}
+#title{
+  min-height:calc(2 * 1.4em + 24px);
+  font-family:'NanumHaNaSonGeurSsi','NanumSquareNeo',-apple-system,"Apple SD Gothic Neo",sans-serif;
+  font-weight:400;font-size:20px
+}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sw{
+  width:34px;height:34px;border-radius:9px;padding:0;flex:0 0 auto;cursor:pointer;
+  border:1px solid rgba(255,255,255,.2);position:relative;outline:2px solid transparent;outline-offset:2px;
+  transition:outline-color .12s
+}
+.sw[aria-pressed="true"]{outline-color:#f2f2f4}
+.sw.custom{background:conic-gradient(#ff4d4d,#ffe14d,#4ade80,#22d3ee,#60a5fa,#c084fc,#ff4d4d);overflow:hidden}
+.sw.custom input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;cursor:pointer}
+#tbColorWrap[hidden]{display:none}
 
 input[type=range]{
   -webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;
@@ -234,7 +263,36 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
     <div class="strip" id="strip" hidden></div>
   </div>
 
-  <!-- 4. 텍스트 입력 -->
+  <!-- 4. 제목 (첫 장 전용) -->
+  <div class="card" id="titleCard" hidden>
+    <div class="label">
+      <span>제목 <span style="color:#6e6e7a;font-weight:500">· 첫 번째 사진에만 들어갑니다</span></span>
+      <button type="button" class="btn sm ghost" id="clearTitle">지우기</button>
+    </div>
+    <textarea id="title" rows="2" spellcheck="false" autocapitalize="off"
+      placeholder="제목을 입력하세요"></textarea>
+    <div class="row">
+      <div class="label"><span>제목 크기</span><span class="val" id="tsVal">120px</span></div>
+      <input type="range" id="ts" min="40" max="260" step="1" value="120">
+    </div>
+    <div class="row">
+      <div class="label"><span>제목 색</span><span class="val" id="tcVal">#FFFFFF</span></div>
+      <div class="swatches" id="tcSw"></div>
+    </div>
+    <div class="row">
+      <div class="label">배경 네모박스</div>
+      <div class="seg" id="tbSeg">
+        <button type="button" data-box="0" aria-pressed="true">없음</button>
+        <button type="button" data-box="1" aria-pressed="false">넣기</button>
+      </div>
+      <div id="tbColorWrap" hidden>
+        <div class="label" style="margin:14px 0 9px"><span>박스 색</span><span class="val" id="tbcVal">#000000</span></div>
+        <div class="swatches" id="tbcSw"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 텍스트 입력 -->
   <div class="card">
     <div class="label">
       <span>텍스트 <span class="which" id="whichShot" hidden></span></span>
@@ -245,7 +303,7 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
     <p class="hint" id="textHint">줄바꿈은 엔터로 직접 넣습니다. (자동 줄바꿈 없음)</p>
   </div>
 
-  <!-- 5. 슬라이더들 -->
+  <!-- 6. 슬라이더들 -->
   <div class="card">
     <div class="row" style="margin:0;padding:0;border:0">
       <div class="label"><span>그라데이션 높이</span><span class="val" id="ghVal">60%</span></div>
@@ -269,7 +327,7 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
     </div>
   </div>
 
-  <!-- 6. 저장 -->
+  <!-- 7. 저장 -->
   <button type="button" class="btn primary" id="save" disabled>PNG로 저장</button>
 
   <footer>모든 이미지 처리는 브라우저 안에서만 실행됩니다.<br>공유 버튼 → ‘홈 화면에 추가’로 앱처럼 쓸 수 있습니다.</footer>
@@ -303,7 +361,12 @@ var state = {
   gradH: 0.60,     // 그라데이션 높이 (이미지 높이 대비)
   gradO: 0.75,     // 그라데이션 최대 불투명도
   fontPx: 55,      // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
-  weight: 800
+  weight: 800,
+  /* 제목 (첫 장에만 그려짐) */
+  titlePx: 120,
+  titleColor: '#FFFFFF',
+  titleBox: false,
+  titleBoxColor: '#000000'
 };
 
 /* ── 사진 목록. 텍스트와 크롭은 장마다 따로 보관 ──
@@ -320,9 +383,12 @@ var PCACHE_MAX  = 3;     // 미리보기 축소본을 동시에 몇 장까지 �
 
 var pcache = new Map();  // idx -> canvas
 var inflight = new Set();
+var gen = 0;             // 목록이 바뀌면 올려서, 진행 중이던 디코드 결과를 버린다
 
 var SAFE_X = 0.07, SAFE_B = 0.07, LINE_H = 1.25;
 var FONT_STACK = "'NanumSquareNeo', -apple-system, 'Apple SD Gothic Neo', sans-serif";
+var TITLE_STACK = "'NanumHaNaSonGeurSsi', 'NanumSquareNeo', -apple-system, sans-serif";
+var BOX_RADIUS = 5;   // 1080px 기준 모서리 반경
 
 /* ── 그라데이션 스톱 (검정 → 투명, 아래에서 위로. 부드러운 감쇠) ── */
 var STOPS = (function(){
@@ -378,23 +444,92 @@ function drawScene(ctx, W, H, sh, src, hq){
     ctx.fillRect(0, H-gh, W, gh);
   }
 
-  var lines = (sh.text || '').split('\n');
-  while (lines.length && lines[lines.length-1].trim() === '') lines.pop();
+  var k = W / 1080;
+  var left = W * SAFE_X;
+  var bottom = H * (1 - SAFE_B);
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  /* 본문 (아래에서 위로 쌓임) */
+  var lines = splitLines(sh.text);
+  var fs = state.fontPx * k, lh = fs * LINE_H;
   if (lines.length){
-    var fs = state.fontPx * (W / 1080);
     ctx.font = state.weight + ' ' + fs + 'px ' + FONT_STACK;
     ctx.fillStyle = '#fff';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    var lh = fs * LINE_H;
-    var baseline = H * (1 - SAFE_B);
-    var left = W * SAFE_X;
+    var baseline = bottom;
     for (var j=lines.length-1; j>=0; j--){
       ctx.fillText(lines[j], left, baseline);
       baseline -= lh;
     }
   }
+
+  /* 제목 — 본문 위에 얹힘 */
+  var tLines = splitLines(sh.title);
+  if (tLines.length){
+    var tfs = state.titlePx * k;
+    var tlh = tfs * (state.titleBox ? 1.5 : 1.2);
+    ctx.font = '400 ' + tfs + 'px ' + TITLE_STACK;
+    var fm = textMetrics(ctx, tLines, tfs);
+
+    /* 본문 첫 줄 위쪽 여백만큼 띄운다 */
+    var tBottom = bottom;
+    if (lines.length){
+      var bodyTop = bottom - (lines.length-1)*lh - fs*0.78;
+      tBottom = bodyTop - tfs*0.30 - fm.desc - (state.titleBox ? tfs*0.18 : 0);
+    }
+
+    var padX = tfs*0.30, padY = tfs*0.16, r = BOX_RADIUS * k;
+    for (var t=tLines.length-1; t>=0; t--){
+      var line = tLines[t];
+      var bl = tBottom - (tLines.length-1-t) * tlh;
+      if (state.titleBox && line.trim()){
+        var tw = ctx.measureText(line).width;
+        ctx.fillStyle = state.titleBoxColor;
+        roundRect(ctx, left - padX, bl - fm.asc - padY,
+                  tw + padX*2, fm.asc + fm.desc + padY*2, r);
+        ctx.fill();
+      }
+      ctx.fillStyle = state.titleColor;
+      ctx.fillText(line, left, bl);
+    }
+  }
   ctx.restore();
+}
+
+function splitLines(s){
+  var a = (s || '').split('\n');
+  while (a.length && a[a.length-1].trim() === '') a.pop();
+  return a;
+}
+
+/* 손글씨 폰트는 em 상자 안에서 글자가 작게 그려져서, 폰트 기준값을 쓰면 박스가 붕 뜬다.
+   실제 글자가 차지하는 높이를 재되, 모든 줄의 최댓값으로 통일해 줄마다 박스 크기가
+   들쭉날쭉해지지 않게 한다. */
+function textMetrics(ctx, lines, size){
+  var asc = 0, desc = 0;
+  for (var i=0;i<lines.length;i++){
+    if (!lines[i].trim()) continue;
+    try {
+      var m = ctx.measureText(lines[i]);
+      if (m.actualBoundingBoxAscent  > asc)  asc  = m.actualBoundingBoxAscent;
+      if (m.actualBoundingBoxDescent > desc) desc = m.actualBoundingBoxDescent;
+    } catch(_){}
+  }
+  if (!(asc > 0)) { asc = size*0.66; desc = size*0.18; }
+  return {asc: asc, desc: Math.max(desc, size*0.06)};
+}
+
+function roundRect(ctx, x, y, w, h, r){
+  r = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  if (ctx.roundRect){ ctx.roundRect(x, y, w, h, r); return; }
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x,   y+h, r);
+  ctx.arcTo(x,   y+h, x,   y,   r);
+  ctx.arcTo(x,   y,   x+w, y,   r);
+  ctx.closePath();
 }
 
 /* ── 미리보기 캔버스 ── */
@@ -414,9 +549,10 @@ function previewSrc(){
 function ensurePreview(i){
   if (pcache.has(i) || inflight.has(i) || !shots[i]) return;
   inflight.add(i);
+  var myGen = gen;
   decodeFile(shots[i].file, MAX_PREVIEW).then(function(img){
     inflight.delete(i);
-    if (!shots[i]) return;
+    if (myGen !== gen || !shots[i]) return;   // 그 사이에 목록이 바뀌었으면 버림
     pcache.delete(i);
     pcache.set(i, img);
     while (pcache.size > PCACHE_MAX) pcache.delete(pcache.keys().next().value);
@@ -464,6 +600,20 @@ var fontsReady = (function(){
 })();
 fontsReady.then(render);
 
+/* 하나손글씨는 글자 단위 서브셋이라, 실제로 쓴 글자를 넘겨야 해당 조각을 받아온다 */
+var titleFontSeen = '';
+function ensureTitleFont(text){
+  if (!document.fonts || !text) return Promise.resolve();
+  return document.fonts.load('400 100px NanumHaNaSonGeurSsi', text).catch(function(){});
+}
+function noteTitleText(text){
+  var fresh = '';
+  for (var i=0;i<text.length;i++){
+    if (titleFontSeen.indexOf(text[i]) < 0){ fresh += text[i]; titleFontSeen += text[i]; }
+  }
+  if (fresh) ensureTitleFont(fresh).then(render);
+}
+
 /* ── 이미지 디코드 / 축소 ── */
 function shrink(src, max){
   var sw = srcW(src), sh = srcH(src);
@@ -502,7 +652,7 @@ $('addMore').addEventListener('click', function(){ openPicker(true); });
 
 var appendMode = false;
 function openPicker(append){
-  if (!append && shots.length && shots.some(function(s){ return s.text.trim() !== ''; })){
+  if (!append && shots.length && shots.some(function(s){ return s.text.trim() !== '' || (s.title||'').trim() !== ''; })){
     if (!window.confirm('사진을 다시 고르면 지금까지 입력한 텍스트가 모두 사라집니다. 계속할까요?\n\n(기존 사진에 더 붙이려면 [+ 추가]를 쓰세요)')) return;
   }
   appendMode = append;
@@ -522,7 +672,7 @@ function loadFiles(files, append){
   files = files.slice(0, Math.max(0, room));
   if (!files.length){ toast('최대 ' + MAX_SHOTS + '장까지 담을 수 있습니다'); return; }
 
-  if (!append){ shots = []; cur = 0; pcache.clear(); inflight.clear(); }
+  if (!append){ shots = []; cur = 0; pcache.clear(); inflight.clear(); gen++; }
   var startAt = shots.length;
 
   busy('사진 불러오는 중… 0/' + files.length);
@@ -541,7 +691,7 @@ function loadFiles(files, append){
     decodeFile(f, MAX_SRC).then(function(img){
       shots.push({
         file: f, w: srcW(img), h: srcH(img), thumb: shrink(img, THUMB),
-        zoom: 1, ox: 0, oy: 0, text: ''
+        zoom: 1, ox: 0, oy: 0, text: '', title: ''
       });
       if (shots.length - 1 === startAt) pcache.set(startAt, shrink(img, MAX_PREVIEW));
     }).catch(function(){}).then(function(){
@@ -558,24 +708,68 @@ function buildStrip(){
   st.hidden = shots.length < 2;
   st.style.setProperty('--tar', String(state.ratio));
   shots.forEach(function(sh, i){
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'thumb' + (sh.text.trim() ? ' hastext' : '');
+    var b = document.createElement('div');
+    b.className = 'thumb';
     b.setAttribute('data-i', i);
+    b.setAttribute('role', 'button');
+    b.setAttribute('tabindex', '0');
     b.setAttribute('aria-current', String(i === cur));
     b.setAttribute('aria-label', (i+1) + '번째 사진');
     b.appendChild(sh.thumb);
+
     var n = document.createElement('span'); n.className = 'n'; n.textContent = i+1;
     var d = document.createElement('span'); d.className = 'has';
-    b.appendChild(n); b.appendChild(d);
+
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'del';
+    x.setAttribute('data-del', i);
+    x.setAttribute('aria-label', (i+1) + '번째 사진 빼기');
+    x.textContent = '×';
+
+    b.appendChild(n); b.appendChild(d); b.appendChild(x);
     st.appendChild(b);
+    markText(i);
   });
 }
 
 $('strip').addEventListener('click', function(e){
-  var b = e.target.closest('button[data-i]');
+  var x = e.target.closest('[data-del]');
+  if (x){ removeShot(parseInt(x.getAttribute('data-del'), 10)); return; }
+  var b = e.target.closest('.thumb[data-i]');
   if (b) setCur(parseInt(b.getAttribute('data-i'), 10));
 });
+
+/* 잘못 고른 사진 빼기 */
+function removeShot(i){
+  var sh = shots[i];
+  if (!sh) return;
+  var hasWork = sh.text.trim() !== '' || (sh.title || '').trim() !== '';
+  if (hasWork && !window.confirm((i+1) + '번째 사진을 뺄까요?\n입력한 텍스트도 함께 사라집니다.')) return;
+
+  shots.splice(i, 1);
+  gen++;                       // 진행 중이던 디코드 결과를 무효화
+  inflight.clear();
+
+  /* 남은 사진들의 번호가 당겨지므로 캐시 키도 함께 옮긴다 */
+  var np = new Map();
+  pcache.forEach(function(v, k){
+    if (k < i) np.set(k, v);
+    else if (k > i) np.set(k - 1, v);
+  });
+  pcache = np;
+
+  /* 첫 장을 뺐다면 제목은 새 첫 장으로 넘긴다 (애써 쓴 걸 날리지 않도록) */
+  if (i === 0 && shots.length && !(shots[0].title || '').trim() && (sh.title || '').trim()){
+    shots[0].title = sh.title;
+  }
+
+  cur = shots.length ? clamp(cur > i ? cur - 1 : cur, 0, shots.length - 1) : 0;
+
+  buildStrip(); syncAll();
+  if (shots.length) ensurePreview(cur);
+  render();
+  toast(shots.length ? ((i+1) + '번째 사진을 뺐습니다') : '사진을 모두 뺐습니다');
+}
 
 function setCur(i){
   if (i < 0 || i >= shots.length || i === cur) return;
@@ -589,8 +783,8 @@ function setCur(i){
 }
 
 function markText(i){
-  var el = $('strip').children[i];
-  if (el) el.classList.toggle('hastext', shots[i].text.trim() !== '');
+  var el = $('strip').children[i], sh = shots[i];
+  if (el && sh) el.classList.toggle('hastext', sh.text.trim() !== '' || (sh.title||'').trim() !== '');
 }
 
 /* ── 현재 장에 맞춰 UI 동기화 ── */
@@ -610,6 +804,11 @@ function syncAll(){
     : '줄바꿈은 엔터로 직접 넣습니다. 텍스트와 크롭은 사진마다 따로 저장됩니다.';
 
   $('text').value = sh ? sh.text : '';
+
+  /* 제목은 첫 장에만 붙으므로, 첫 장을 보고 있을 때만 입력칸을 보여준다 */
+  $('titleCard').hidden = !(n > 0 && cur === 0);
+  $('title').value = shots[0] ? (shots[0].title || '') : '';
+
   var z = sh ? Math.round(sh.zoom * 100) : 100;
   $('zoom').value = z;
   $('zoomVal').textContent = z + '%';
@@ -657,6 +856,79 @@ $('clearText').addEventListener('click', function(){
   markText(cur);
   render();
 });
+
+/* ── 제목 (첫 장 전용) ── */
+$('title').addEventListener('input', function(){
+  if (!shots[0]){ this.value = ''; return; }
+  shots[0].title = this.value;
+  noteTitleText(this.value);
+  markText(0);
+  render();
+});
+$('clearTitle').addEventListener('click', function(){
+  if (!shots[0]) return;
+  shots[0].title = '';
+  $('title').value = '';
+  $('title').focus();
+  markText(0);
+  render();
+});
+$('ts').addEventListener('input', function(){
+  state.titlePx = parseInt(this.value, 10);
+  $('tsVal').textContent = state.titlePx + 'px';
+  render();
+});
+$('tbSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button[data-box]');
+  if (!b) return;
+  state.titleBox = b.getAttribute('data-box') === '1';
+  Array.prototype.forEach.call(this.querySelectorAll('button'), function(x){
+    x.setAttribute('aria-pressed', String(x === b));
+  });
+  $('tbColorWrap').hidden = !state.titleBox;
+  render();
+});
+
+/* 색 고르기 — 자주 쓰는 색 몇 개 + 직접 고르기 */
+function buildSwatches(host, presets, initial, onPick){
+  var custom;
+  function mark(v){
+    Array.prototype.forEach.call(host.querySelectorAll('.sw'), function(el){
+      el.setAttribute('aria-pressed', String((el.dataset.c || '').toUpperCase() === v.toUpperCase()));
+    });
+    if (custom && presets.indexOf(v.toUpperCase()) < 0){
+      custom.parentNode.setAttribute('aria-pressed', 'true');
+      custom.value = v;
+    }
+  }
+  presets.forEach(function(c){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'sw'; b.dataset.c = c;
+    b.style.background = c;
+    b.setAttribute('aria-label', c);
+    b.addEventListener('click', function(){ onPick(c); mark(c); });
+    host.appendChild(b);
+  });
+  var lab = document.createElement('label');
+  lab.className = 'sw custom';
+  lab.setAttribute('aria-label', '직접 고르기');
+  custom = document.createElement('input');
+  custom.type = 'color';
+  custom.value = initial;
+  custom.addEventListener('input', function(){ onPick(this.value); mark(this.value); });
+  lab.appendChild(custom);
+  host.appendChild(lab);
+  mark(initial);
+}
+
+buildSwatches($('tcSw'), ['#FFFFFF','#000000','#FFE14D','#FF6B6B','#4ADE80','#60A5FA'],
+  state.titleColor, function(c){
+    state.titleColor = c; $('tcVal').textContent = c.toUpperCase(); render();
+  });
+buildSwatches($('tbcSw'), ['#000000','#FFFFFF','#FFE14D','#FF6B6B','#4ADE80','#60A5FA'],
+  state.titleBoxColor, function(c){
+    state.titleBoxColor = c; $('tbcVal').textContent = c.toUpperCase(); render();
+  });
 
 /* ── 슬라이더 (전체 공통) ── */
 $('gh').addEventListener('input', function(){
@@ -797,7 +1069,8 @@ $('save').addEventListener('click', function(){
   var total = shots.length;
   btn.disabled = true;
 
-  fontsReady.then(function(){
+  /* 제목 글자에 해당하는 손글씨 서브셋까지 받아온 뒤에 그려야 폰트가 빠지지 않는다 */
+  Promise.all([fontsReady, ensureTitleFont(shots[0] && shots[0].title)]).then(function(){
     var W = 1080, H = outH(), base = 'insta-' + stamp();
     var made = [];
     var i = 0;
@@ -974,6 +1247,10 @@ $('strip').style.setProperty('--tar', String(state.ratio));
 $('gh').value = Math.round(state.gradH * 100); $('ghVal').textContent = Math.round(state.gradH * 100) + '%';
 $('go').value = Math.round(state.gradO * 100); $('goVal').textContent = Math.round(state.gradO * 100) + '%';
 $('fs').value = state.fontPx;                  $('fsVal').textContent = state.fontPx + 'px';
+$('ts').value = state.titlePx;                 $('tsVal').textContent = state.titlePx + 'px';
+$('tcVal').textContent  = state.titleColor.toUpperCase();
+$('tbcVal').textContent = state.titleBoxColor.toUpperCase();
+$('tbColorWrap').hidden = !state.titleBox;
 syncAll();
 render();
 
