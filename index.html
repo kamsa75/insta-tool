@@ -80,30 +80,58 @@ h1 small{font-weight:500;font-size:12px;color:#7c7c88;letter-spacing:0}
 }
 .strip[hidden]{display:none}
 .strip::-webkit-scrollbar{display:none}
+/* .thumb = 자리(끌 때 이동), .tw = 겉모습(흔들림). 둘을 나눠야 흔들기와 끌기가
+   같은 transform 을 두고 다투지 않는다 */
 .thumb{
   position:relative;flex:0 0 auto;height:66px;width:calc(66px * var(--tar));
-  border-radius:9px;overflow:hidden;border:0;padding:0;background:#000;cursor:pointer;
-  opacity:.45;transition:opacity .15s;outline:2px solid transparent;outline-offset:-2px;
-  -webkit-user-select:none;user-select:none
+  border:0;padding:0;background:transparent;cursor:pointer;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none
 }
+.tw{
+  position:absolute;inset:0;border-radius:9px;overflow:hidden;background:#000;
+  opacity:.45;transition:opacity .15s;outline:2px solid transparent;outline-offset:-2px
+}
+.thumb[aria-current="true"] .tw{opacity:1;outline-color:#f2f2f4}
 .thumb .del{
   position:absolute;right:3px;top:3px;width:20px;height:20px;border-radius:50%;
   border:0;padding:0;margin:0;background:rgba(0,0,0,.66);color:#fff;
-  font-size:14px;line-height:1;font-weight:600;cursor:pointer;
+  font-size:14px;line-height:1;font-weight:600;cursor:pointer;z-index:2;
   display:flex;align-items:center;justify-content:center
 }
 .thumb .del:active{background:rgba(220,60,60,.9)}
-.thumb canvas,.thumb img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-.thumb[aria-current="true"]{opacity:1;outline-color:#f2f2f4}
+.tw canvas,.tw img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 .thumb .n{
   position:absolute;left:5px;top:3px;font-size:10px;font-weight:800;color:#fff;
-  text-shadow:0 1px 3px rgba(0,0,0,.95);pointer-events:none
+  text-shadow:0 1px 3px rgba(0,0,0,.95);pointer-events:none;z-index:2
 }
 .thumb .has{
   position:absolute;right:5px;bottom:5px;width:6px;height:6px;border-radius:50%;
-  background:#4ade80;box-shadow:0 0 0 1.5px rgba(0,0,0,.55);display:none;pointer-events:none
+  background:#4ade80;box-shadow:0 0 0 1.5px rgba(0,0,0,.55);display:none;pointer-events:none;z-index:2
 }
 .thumb.hastext .has{display:block}
+
+/* 꾹 누르면 아이폰 홈 화면처럼 흔들림 */
+@keyframes wiggle{
+  0%,100%{transform:rotate(-1.5deg)}
+  50%    {transform:rotate(1.5deg)}
+}
+.strip.jiggle .tw{animation:wiggle .30s ease-in-out infinite}
+.strip.jiggle .thumb:nth-child(2n) .tw{animation-duration:.34s;animation-delay:-.11s}
+.strip.jiggle .thumb:nth-child(3n) .tw{animation-duration:.27s;animation-delay:-.05s}
+.strip.jiggle{overflow-x:auto;padding-bottom:6px}
+.thumb.dragging{z-index:9}
+.thumb.dragging .tw{
+  animation:none;opacity:1;box-shadow:0 10px 24px rgba(0,0,0,.65)
+}
+
+.reorderBar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:#17171b;border:1px solid #232329;border-radius:11px;padding:8px 8px 8px 13px;
+  font-size:12px;font-weight:600;color:#9a9aa6
+}
+.reorderBar[hidden]{display:none}
+.stripHint{font-size:11.5px;color:#5e5e6a;text-align:center;margin:0}
+.stripHint[hidden]{display:none}
 
 /* ── 컨트롤 공통 ───────────────────────────────────────────── */
 .card{background:#17171b;border:1px solid #232329;border-radius:14px;padding:14px}
@@ -261,6 +289,11 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
       <div class="busy" id="busy" hidden></div>
     </div>
     <div class="strip" id="strip" hidden></div>
+    <div class="reorderBar" id="reorderBar" hidden>
+      <span>끌어서 순서를 바꾸세요</span>
+      <button type="button" class="btn sm primary" id="doneReorder">완료</button>
+    </div>
+    <p class="stripHint" id="stripHint" hidden>썸네일을 꾹 누르면 순서를 바꿀 수 있어요</p>
   </div>
 
   <!-- 4. 제목 (첫 장 전용) -->
@@ -362,7 +395,8 @@ var state = {
   gradO: 0.75,     // 그라데이션 최대 불투명도
   fontPx: 55,      // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
   weight: 800,
-  /* 제목 (첫 장에만 그려짐) */
+  /* 제목 — 사진이 아니라 '맨 앞 자리'에 붙는다. 순서를 바꿔도 항상 첫 장에 남음 */
+  title: '',
   titlePx: 120,
   titleColor: '#FFFFFF',
   titleBox: false,
@@ -375,7 +409,7 @@ var state = {
 var shots = [];
 var cur = 0;
 
-var MAX_SHOTS   = 20;    // 인스타 캐러셀 최대 장수
+var MAX_SHOTS   = 10;    // 한 번에 담을 수 있는 사진 수
 var MAX_SRC     = 3000;  // 저장용 디코드 상한 (캔버스 메모리 한계 대비)
 var MAX_PREVIEW = 1400;  // 미리보기용 축소본
 var THUMB       = 320;   // 썸네일 (미리보기 로딩 중 임시 표시용으로도 씀)
@@ -388,7 +422,7 @@ var gen = 0;             // 목록이 바뀌면 올려서, 진행 중이던 디�
 var SAFE_X = 0.07, SAFE_B = 0.07, LINE_H = 1.25;
 var FONT_STACK = "'NanumSquareNeo', -apple-system, 'Apple SD Gothic Neo', sans-serif";
 var TITLE_STACK = "'NanumHaNaSonGeurSsi', 'NanumSquareNeo', -apple-system, sans-serif";
-var BOX_RADIUS = 5;   // 1080px 기준 모서리 반경
+var BOX_RADIUS = 10;  // 1080px 기준 모서리 반경
 
 /* ── 그라데이션 스톱 (검정 → 투명, 아래에서 위로. 부드러운 감쇠) ── */
 var STOPS = (function(){
@@ -420,7 +454,7 @@ function clampOffsets(sh){
 }
 
 /* ── 렌더 (미리보기와 최종 출력이 같은 함수를 사용) ── */
-function drawScene(ctx, W, H, sh, src, hq){
+function drawScene(ctx, W, H, sh, src, hq, isFirst){
   ctx.save();
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = '#000';
@@ -465,7 +499,7 @@ function drawScene(ctx, W, H, sh, src, hq){
   }
 
   /* 제목 — 본문 위에 얹힘 */
-  var tLines = splitLines(sh.title);
+  var tLines = isFirst ? splitLines(state.title) : [];
   if (tLines.length){
     var tfs = state.titlePx * k;
     var tlh = tfs * (state.titleBox ? 1.5 : 1.2);
@@ -582,7 +616,7 @@ function render(){
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
     ctx.translate(fx, fy);
-    drawScene(ctx, fw, fh, cs(), previewSrc(), false);
+    drawScene(ctx, fw, fh, cs(), previewSrc(), false, cur === 0);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   });
 }
@@ -652,7 +686,7 @@ $('addMore').addEventListener('click', function(){ openPicker(true); });
 
 var appendMode = false;
 function openPicker(append){
-  if (!append && shots.length && shots.some(function(s){ return s.text.trim() !== '' || (s.title||'').trim() !== ''; })){
+  if (!append && shots.length && (state.title.trim() !== '' || shots.some(function(s){ return s.text.trim() !== ''; }))){
     if (!window.confirm('사진을 다시 고르면 지금까지 입력한 텍스트가 모두 사라집니다. 계속할까요?\n\n(기존 사진에 더 붙이려면 [+ 추가]를 쓰세요)')) return;
   }
   appendMode = append;
@@ -691,7 +725,7 @@ function loadFiles(files, append){
     decodeFile(f, MAX_SRC).then(function(img){
       shots.push({
         file: f, w: srcW(img), h: srcH(img), thumb: shrink(img, THUMB),
-        zoom: 1, ox: 0, oy: 0, text: '', title: ''
+        zoom: 1, ox: 0, oy: 0, text: ''
       });
       if (shots.length - 1 === startAt) pcache.set(startAt, shrink(img, MAX_PREVIEW));
     }).catch(function(){}).then(function(){
@@ -715,7 +749,11 @@ function buildStrip(){
     b.setAttribute('tabindex', '0');
     b.setAttribute('aria-current', String(i === cur));
     b.setAttribute('aria-label', (i+1) + '번째 사진');
-    b.appendChild(sh.thumb);
+
+    var tw = document.createElement('div');
+    tw.className = 'tw';
+    tw.appendChild(sh.thumb);
+    b.appendChild(tw);
 
     var n = document.createElement('span'); n.className = 'n'; n.textContent = i+1;
     var d = document.createElement('span'); d.className = 'has';
@@ -730,20 +768,180 @@ function buildStrip(){
     st.appendChild(b);
     markText(i);
   });
+  $('stripHint').hidden = shots.length < 2 || jiggle;
+  if (shots.length < 2) setJiggle(false);
 }
 
 $('strip').addEventListener('click', function(e){
   var x = e.target.closest('[data-del]');
   if (x){ removeShot(parseInt(x.getAttribute('data-del'), 10)); return; }
+  if (Date.now() - lastDragEnd < 350) return;    // 끌기 직후 따라오는 click 은 선택으로 치지 않음
   var b = e.target.closest('.thumb[data-i]');
   if (b) setCur(parseInt(b.getAttribute('data-i'), 10));
+});
+
+/* ── 꾹 눌러 흔들기 → 끌어서 순서 바꾸기 ─────────────────────
+   아이폰 홈 화면과 같은 방식. 길게 누르면 흔들리기 시작하고,
+   그 손가락 그대로 끌면 자리가 바뀐다.                        */
+var jiggle = false, dragS = null, dragMoved = false, lastDragEnd = 0;
+var lpTimer = null, lpFrom = null, asRAF = null;
+
+function setJiggle(on){
+  if (jiggle === on) return;
+  jiggle = on;
+  $('strip').classList.toggle('jiggle', on);
+  $('reorderBar').hidden = !on;
+  $('stripHint').hidden = shots.length < 2 || on;
+}
+$('doneReorder').addEventListener('click', function(){ setJiggle(false); });
+
+function stripX(clientX){
+  var st = $('strip');
+  return clientX - st.getBoundingClientRect().left + st.scrollLeft;
+}
+
+function beginDrag(from, clientX){
+  var kids = $('strip').children;
+  if (kids.length < 2 || !kids[from]) return;
+  var base = [];
+  for (var i=0;i<kids.length;i++){
+    kids[i].style.transition = 'none';
+    kids[i].style.transform = '';
+    base.push(kids[i].offsetLeft);
+  }
+  dragS = {
+    from: from, to: from, el: kids[from], base: base,
+    slotW: base[1] - base[0],
+    grab: stripX(clientX) - base[from],
+    lastX: clientX
+  };
+  dragMoved = false;
+  dragS.el.classList.add('dragging');
+  for (var j=0;j<kids.length;j++) if (j !== from) kids[j].style.transition = 'transform .18s ease';
+  if (!asRAF) asRAF = requestAnimationFrame(autoScroll);
+}
+
+function updateDrag(clientX){
+  var d = dragS;
+  if (!d) return;
+  d.lastX = clientX;
+  var desired = stripX(clientX) - d.grab;
+  var dx = desired - d.base[d.from];
+  if (Math.abs(dx) > 4) dragMoved = true;
+  d.el.style.transform = 'translateX(' + dx + 'px) scale(1.08)';
+
+  var to = clamp(Math.round((desired - d.base[0]) / d.slotW), 0, d.base.length - 1);
+  if (to === d.to) return;
+  d.to = to;
+  var kids = $('strip').children;
+  for (var i=0;i<kids.length;i++){
+    if (i === d.from) continue;
+    var shift = 0;
+    if (d.from < d.to && i > d.from && i <= d.to) shift = -d.slotW;
+    else if (d.from > d.to && i >= d.to && i < d.from) shift = d.slotW;
+    kids[i].style.transform = shift ? ('translateX(' + shift + 'px)') : '';
+  }
+}
+
+/* 끝자락에 끌고 가면 썸네일 줄이 따라 스크롤 */
+function autoScroll(){
+  asRAF = dragS ? requestAnimationFrame(autoScroll) : null;
+  var d = dragS;
+  if (!d) return;
+  var st = $('strip'), r = st.getBoundingClientRect(), EDGE = 46;
+  var dx = d.lastX < r.left + EDGE ? -11 : (d.lastX > r.right - EDGE ? 11 : 0);
+  if (!dx) return;
+  var before = st.scrollLeft;
+  st.scrollLeft = clamp(before + dx, 0, st.scrollWidth - st.clientWidth);
+  if (st.scrollLeft !== before) updateDrag(d.lastX);
+}
+
+function endDrag(){
+  var d = dragS;
+  dragS = null;
+  if (!d) return;
+  var kids = $('strip').children;
+  for (var i=0;i<kids.length;i++){ kids[i].style.transition = ''; kids[i].style.transform = ''; }
+  d.el.classList.remove('dragging');
+  if (dragMoved) lastDragEnd = Date.now();
+  dragMoved = false;
+  if (d.from === d.to) return;
+
+  shots.splice(d.to, 0, shots.splice(d.from, 1)[0]);
+  gen++; inflight.clear();
+  var np = new Map();
+  pcache.forEach(function(v, k){ np.set(reindex(k, d.from, d.to), v); });
+  pcache = np;
+  cur = reindex(cur, d.from, d.to);
+  buildStrip(); syncAll(); ensurePreview(cur); render();
+}
+
+function reindex(idx, from, to){
+  if (idx === from) return to;
+  if (from < to && idx > from && idx <= to) return idx - 1;
+  if (from > to && idx >= to && idx < from) return idx + 1;
+  return idx;
+}
+
+function pressStart(e, clientX, clientY){
+  if (e.target.closest('[data-del]')) return;
+  var t = e.target.closest('.thumb[data-i]');
+  if (!t || shots.length < 2) return;
+  var i = parseInt(t.getAttribute('data-i'), 10);
+  if (jiggle){ beginDrag(i, clientX); e.preventDefault(); return; }
+  lpFrom = {x: clientX, y: clientY, i: i};
+  lpTimer = setTimeout(function(){
+    lpTimer = null;
+    setJiggle(true);
+    if (navigator.vibrate) try { navigator.vibrate(12); } catch(_){}
+    beginDrag(i, lpFrom.x);
+  }, 480);
+}
+function pressMove(e, clientX, clientY){
+  if (lpTimer){
+    if (Math.abs(clientX - lpFrom.x) > 9 || Math.abs(clientY - lpFrom.y) > 9){
+      clearTimeout(lpTimer); lpTimer = null;   // 그냥 스크롤한 것
+    }
+    return;
+  }
+  if (!dragS) return;
+  if (e.cancelable) e.preventDefault();
+  updateDrag(clientX);
+}
+function pressEnd(){
+  if (lpTimer){ clearTimeout(lpTimer); lpTimer = null; }
+  endDrag();
+}
+
+$('strip').addEventListener('touchstart', function(e){
+  if (e.touches.length !== 1) return;
+  pressStart(e, e.touches[0].clientX, e.touches[0].clientY);
+}, {passive:false});
+$('strip').addEventListener('touchmove', function(e){
+  pressMove(e, e.touches[0].clientX, e.touches[0].clientY);
+}, {passive:false});
+$('strip').addEventListener('touchend', pressEnd);
+$('strip').addEventListener('touchcancel', pressEnd);
+$('strip').addEventListener('contextmenu', function(e){ if (jiggle || dragS) e.preventDefault(); });
+
+$('strip').addEventListener('mousedown', function(e){ pressStart(e, e.clientX, e.clientY); });
+window.addEventListener('mousemove', function(e){
+  if (lpTimer || dragS) pressMove(e, e.clientX, e.clientY);
+});
+window.addEventListener('mouseup', function(){ if (lpTimer || dragS) pressEnd(); });
+
+/* 썸네일 줄 밖을 누르면 흔들기 끝 */
+document.addEventListener('click', function(e){
+  if (!jiggle || dragS) return;
+  if (e.target.closest('#strip') || e.target.closest('#reorderBar')) return;
+  setJiggle(false);
 });
 
 /* 잘못 고른 사진 빼기 */
 function removeShot(i){
   var sh = shots[i];
   if (!sh) return;
-  var hasWork = sh.text.trim() !== '' || (sh.title || '').trim() !== '';
+  var hasWork = sh.text.trim() !== '';
   if (hasWork && !window.confirm((i+1) + '번째 사진을 뺄까요?\n입력한 텍스트도 함께 사라집니다.')) return;
 
   shots.splice(i, 1);
@@ -757,11 +955,6 @@ function removeShot(i){
     else if (k > i) np.set(k - 1, v);
   });
   pcache = np;
-
-  /* 첫 장을 뺐다면 제목은 새 첫 장으로 넘긴다 (애써 쓴 걸 날리지 않도록) */
-  if (i === 0 && shots.length && !(shots[0].title || '').trim() && (sh.title || '').trim()){
-    shots[0].title = sh.title;
-  }
 
   cur = shots.length ? clamp(cur > i ? cur - 1 : cur, 0, shots.length - 1) : 0;
 
@@ -784,7 +977,7 @@ function setCur(i){
 
 function markText(i){
   var el = $('strip').children[i], sh = shots[i];
-  if (el && sh) el.classList.toggle('hastext', sh.text.trim() !== '' || (sh.title||'').trim() !== '');
+  if (el && sh) el.classList.toggle('hastext', sh.text.trim() !== '' || (i === 0 && state.title.trim() !== ''));
 }
 
 /* ── 현재 장에 맞춰 UI 동기화 ── */
@@ -807,7 +1000,7 @@ function syncAll(){
 
   /* 제목은 첫 장에만 붙으므로, 첫 장을 보고 있을 때만 입력칸을 보여준다 */
   $('titleCard').hidden = !(n > 0 && cur === 0);
-  $('title').value = shots[0] ? (shots[0].title || '') : '';
+  $('title').value = state.title;
 
   var z = sh ? Math.round(sh.zoom * 100) : 100;
   $('zoom').value = z;
@@ -859,15 +1052,13 @@ $('clearText').addEventListener('click', function(){
 
 /* ── 제목 (첫 장 전용) ── */
 $('title').addEventListener('input', function(){
-  if (!shots[0]){ this.value = ''; return; }
-  shots[0].title = this.value;
+  state.title = this.value;
   noteTitleText(this.value);
   markText(0);
   render();
 });
 $('clearTitle').addEventListener('click', function(){
-  if (!shots[0]) return;
-  shots[0].title = '';
+  state.title = '';
   $('title').value = '';
   $('title').focus();
   markText(0);
@@ -1070,7 +1261,7 @@ $('save').addEventListener('click', function(){
   btn.disabled = true;
 
   /* 제목 글자에 해당하는 손글씨 서브셋까지 받아온 뒤에 그려야 폰트가 빠지지 않는다 */
-  Promise.all([fontsReady, ensureTitleFont(shots[0] && shots[0].title)]).then(function(){
+  Promise.all([fontsReady, ensureTitleFont(state.title)]).then(function(){
     var W = 1080, H = outH(), base = 'insta-' + stamp();
     var made = [];
     var i = 0;
@@ -1091,7 +1282,7 @@ $('save').addEventListener('click', function(){
       decodeFile(shots[i].file, MAX_SRC).then(function(full){
         var c = document.createElement('canvas');
         c.width = W; c.height = H;
-        drawScene(c.getContext('2d'), W, H, shots[i], full, true);
+        drawScene(c.getContext('2d'), W, H, shots[i], full, true, i === 0);
         return toBlob(c).then(function(blob){
           c.width = c.height = 1;   // 캔버스 메모리 즉시 반납
           if (blob){
