@@ -89,7 +89,7 @@ h1 small{font-weight:500;font-size:12px;color:#7c7c88;letter-spacing:0}
 .btn.sm{width:auto;padding:6px 11px;font-size:12px;font-weight:600;border-radius:8px}
 
 textarea{
-  width:100%;min-height:92px;resize:vertical;background:#101014;color:#f2f2f4;
+  width:100%;min-height:calc(5 * 1.4em + 24px);resize:vertical;background:#101014;color:#f2f2f4;
   border:1px solid #2a2a32;border-radius:11px;padding:11px 12px;
   font-family:'NanumSquareNeo',-apple-system,"Apple SD Gothic Neo",sans-serif;
   font-size:16px;font-weight:700;line-height:1.4;outline:none
@@ -98,13 +98,15 @@ textarea:focus{border-color:#4a4a58}
 .hint{font-size:11.5px;color:#6e6e7a;margin:8px 0 0}
 
 input[type=range]{
-  -webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;
-  margin:0;display:block;cursor:pointer
+  -webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;
+  margin:0;display:block;cursor:pointer;
+  /* 스크롤 제스처와 경합하지 않도록 → 모바일에서 끌 때 끊김 방지 */
+  touch-action:none
 }
 input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:#33333c}
 input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#f2f2f4;
-  border:0;margin-top:-9px;box-shadow:0 1px 4px rgba(0,0,0,.5)
+  -webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#f2f2f4;
+  border:0;margin-top:-10px;box-shadow:0 1px 4px rgba(0,0,0,.5)
 }
 input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:#33333c}
 input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#f2f2f4;border:0}
@@ -143,18 +145,7 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
 
   <h1><span class="dot"></span>인스타 그라데이션 텍스트 <small>사진은 기기 밖으로 나가지 않습니다</small></h1>
 
-  <!-- 1. 미리보기 -->
-  <div class="stage" id="stage">
-    <canvas id="preview"></canvas>
-    <div class="empty">
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
-      </svg>
-      <div>아래에서 사진을 선택하세요</div>
-    </div>
-  </div>
-
-  <!-- 2. 비율 토글 -->
+  <!-- 1. 비율 토글 -->
   <div class="card">
     <div class="label">비율</div>
     <div class="seg" id="ratioSeg">
@@ -163,7 +154,7 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
     </div>
   </div>
 
-  <!-- 3. 사진 선택 + 크롭 -->
+  <!-- 2. 사진 선택 + 크롭 -->
   <div class="card">
     <input type="file" id="file" accept="image/*" hidden>
     <button type="button" class="btn" id="pick">사진 선택</button>
@@ -179,10 +170,24 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
     </div>
   </div>
 
+  <!-- 3. 미리보기 -->
+  <div class="stage" id="stage">
+    <canvas id="preview"></canvas>
+    <div class="empty">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+      </svg>
+      <div>위에서 사진을 선택하세요</div>
+    </div>
+  </div>
+
   <!-- 4. 텍스트 입력 -->
   <div class="card">
-    <div class="label">텍스트</div>
-    <textarea id="text" rows="3" spellcheck="false" autocapitalize="off"
+    <div class="label">
+      <span>텍스트</span>
+      <button type="button" class="btn sm ghost" id="clearText">지우기</button>
+    </div>
+    <textarea id="text" rows="5" spellcheck="false" autocapitalize="off"
       placeholder="여기에 문구를 입력하세요&#10;엔터로 줄을 나눕니다"></textarea>
     <p class="hint">줄바꿈은 엔터로 직접 넣습니다. (자동 줄바꿈 없음)</p>
   </div>
@@ -190,16 +195,16 @@ footer{font-size:11px;color:#55555f;text-align:center;line-height:1.6;margin-top
   <!-- 5. 슬라이더들 -->
   <div class="card">
     <div class="row" style="margin:0;padding:0;border:0">
-      <div class="label"><span>그라데이션 높이</span><span class="val" id="ghVal">45%</span></div>
-      <input type="range" id="gh" min="20" max="70" step="1" value="45">
+      <div class="label"><span>그라데이션 높이</span><span class="val" id="ghVal">60%</span></div>
+      <input type="range" id="gh" min="20" max="70" step="1" value="60">
     </div>
     <div class="row">
       <div class="label"><span>그라데이션 진하기</span><span class="val" id="goVal">75%</span></div>
       <input type="range" id="go" min="0" max="90" step="1" value="75">
     </div>
     <div class="row">
-      <div class="label"><span>텍스트 크기</span><span class="val" id="fsVal">67px</span></div>
-      <input type="range" id="fs" min="30" max="140" step="1" value="62">
+      <div class="label"><span>텍스트 크기</span><span class="val" id="fsVal">55px</span></div>
+      <input type="range" id="fs" min="24" max="160" step="1" value="55">
     </div>
     <div class="row">
       <div class="label">폰트 굵기</div>
@@ -240,13 +245,14 @@ var clamp = function(v,a,b){ return v<a?a:(v>b?b:v); };
 
 /* ── 상태 (모든 값은 해상도와 무관한 비율로 저장 → 미리보기와 출력이 동일) ── */
 var state = {
-  img: null,          // 원본(필요시 축소된) 이미지 소스
+  img: null,          // 저장용 원본 (필요시 축소)
+  pimg: null,         // 미리보기용 축소본 (드래그/슬라이더를 부드럽게)
   ratio: 0.8,         // 프레임 가로/세로 비 (1 = 1:1, 0.8 = 4:5)
   zoom: 1,            // cover 기준 배율 (1 이상)
   ox: 0, oy: 0,       // 프레임 폭/높이 대비 오프셋
-  gradH: 0.45,        // 그라데이션 높이 (이미지 높이 대비)
+  gradH: 0.60,        // 그라데이션 높이 (이미지 높이 대비)
   gradO: 0.75,        // 그라데이션 최대 불투명도
-  fontSize: 0.062,    // 글자 크기 (프레임 높이 대비)
+  fontPx: 55,         // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
   weight: 800,
   text: ''
 };
@@ -265,7 +271,7 @@ var STOPS = (function(){
 function drawFrac(){
   var im = state.img;
   if (!im) return {dw:1, dh:1};
-  var imAR = im.width / im.height, AR = state.ratio;
+  var imAR = srcW(im) / srcH(im), AR = state.ratio;
   return imAR > AR
     ? {dw: state.zoom * imAR / AR, dh: state.zoom}
     : {dw: state.zoom, dh: state.zoom * AR / imAR};
@@ -279,17 +285,17 @@ function clampOffsets(){
 }
 
 /* ── 렌더 (미리보기와 최종 출력이 같은 함수를 사용) ── */
-function drawScene(ctx, W, H){
+function drawScene(ctx, W, H, src, hq){
   ctx.save();
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = '#000';
   ctx.fillRect(0,0,W,H);
 
-  if (state.img){
+  if (src){
     var f = drawFrac(), w = f.dw*W, h = f.dh*H;
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(state.img, (W-w)/2 + state.ox*W, (H-h)/2 + state.oy*H, w, h);
+    ctx.imageSmoothingQuality = hq ? 'high' : 'medium';
+    ctx.drawImage(src, (W-w)/2 + state.ox*W, (H-h)/2 + state.oy*H, w, h);
   }
 
   var gh = H * state.gradH;
@@ -305,7 +311,7 @@ function drawScene(ctx, W, H){
   var lines = state.text.split('\n');
   while (lines.length && lines[lines.length-1].trim() === '') lines.pop();
   if (lines.length){
-    var fs = state.fontSize * H;
+    var fs = state.fontPx * (W / 1080);
     ctx.font = state.weight + ' ' + fs + 'px ' + FONT_STACK;
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'left';
@@ -349,7 +355,7 @@ function render(){
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, cw, ch);
     ctx.translate(fx, fy);
-    drawScene(ctx, fw, fh);
+    drawScene(ctx, fw, fh, state.pimg || state.img, false);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   });
 }
@@ -368,7 +374,28 @@ var fontsReady = (function(){
 fontsReady.then(render);
 
 /* ── 사진 선택 ── */
-var MAX_SRC = 3000; // iOS 캔버스 메모리 한계 대비 원본 축소 상한
+var MAX_SRC = 3000;      // iOS 캔버스 메모리 한계 대비 원본 축소 상한
+var MAX_PREVIEW = 1400;  // 미리보기 전용 축소본 (저장 화질과 무관)
+
+/* 큰 원본을 매 프레임 축소 그리기 하면 슬라이더/드래그가 버벅임 →
+   미리보기용 축소본을 한 번만 만들어 두고 그것만 그린다. 저장은 항상 원본 사용. */
+function srcW(s){ return s.naturalWidth  || s.width; }
+function srcH(s){ return s.naturalHeight || s.height; }
+
+function shrink(src, max){
+  var sw = srcW(src), sh = srcH(src);
+  var mx = Math.max(sw, sh);
+  if (mx <= max) return src;
+  var s = max / mx;
+  var c = document.createElement('canvas');
+  c.width  = Math.max(1, Math.round(sw * s));
+  c.height = Math.max(1, Math.round(sh * s));
+  var cc = c.getContext('2d');
+  cc.imageSmoothingEnabled = true;
+  cc.imageSmoothingQuality = 'high';
+  cc.drawImage(src, 0, 0, c.width, c.height);
+  return c;
+}
 
 $('pick').addEventListener('click', function(){ $('file').click(); });
 
@@ -379,19 +406,9 @@ $('file').addEventListener('change', function(e){
   var im = new Image();
   im.onload = function(){
     URL.revokeObjectURL(url);
-    var src = im, mx = Math.max(im.naturalWidth, im.naturalHeight);
-    if (mx > MAX_SRC){
-      var s = MAX_SRC / mx;
-      var c = document.createElement('canvas');
-      c.width  = Math.round(im.naturalWidth  * s);
-      c.height = Math.round(im.naturalHeight * s);
-      var cc = c.getContext('2d');
-      cc.imageSmoothingEnabled = true;
-      cc.imageSmoothingQuality = 'high';
-      cc.drawImage(im, 0, 0, c.width, c.height);
-      src = c;
-    }
-    state.img = src;
+    var full = shrink(im, MAX_SRC);
+    state.img  = full;
+    state.pimg = shrink(full, MAX_PREVIEW);
     state.zoom = 1; state.ox = 0; state.oy = 0;
     $('zoom').value = 100; $('zoomVal').textContent = '100%';
     stage.classList.add('has-img');
@@ -415,7 +432,6 @@ $('ratioSeg').addEventListener('click', function(e){
     x.setAttribute('aria-pressed', String(x === b));
   });
   stage.style.setProperty('--ar', String(state.ratio));
-  $('fsVal').textContent = Math.round(outH() * state.fontSize) + 'px';
   clampOffsets(); render();
 });
 
@@ -440,8 +456,14 @@ $('go').addEventListener('input', function(){
   state.gradO = this.value / 100; $('goVal').textContent = this.value + '%'; render();
 });
 $('fs').addEventListener('input', function(){
-  state.fontSize = this.value / 1000;
-  $('fsVal').textContent = Math.round(outH() * state.fontSize) + 'px';
+  state.fontPx = parseInt(this.value, 10);
+  $('fsVal').textContent = state.fontPx + 'px';
+  render();
+});
+$('clearText').addEventListener('click', function(){
+  var ta = $('text');
+  ta.value = ''; state.text = '';
+  ta.focus();
   render();
 });
 $('zoom').addEventListener('input', function(){ setZoom(this.value / 100, 0.5, 0.5); });
@@ -562,7 +584,7 @@ $('save').addEventListener('click', function(){
     var W = 1080, H = outH();
     var c = document.createElement('canvas');
     c.width = W; c.height = H;
-    drawScene(c.getContext('2d'), W, H);
+    drawScene(c.getContext('2d'), W, H, state.img, true);
 
     var done = function(blob){
       btn.disabled = false;
@@ -672,8 +694,11 @@ try {
     btoa(unescape(encodeURIComponent(JSON.stringify(mf)))));
 } catch(_){}
 
-/* ── 초기화 ── */
-$('fsVal').textContent = Math.round(outH() * state.fontSize) + 'px';
+/* ── 초기화 (기본값을 화면에 반영) ── */
+stage.style.setProperty('--ar', String(state.ratio));
+$('gh').value = Math.round(state.gradH * 100); $('ghVal').textContent = Math.round(state.gradH * 100) + '%';
+$('go').value = Math.round(state.gradO * 100); $('goVal').textContent = Math.round(state.gradO * 100) + '%';
+$('fs').value = state.fontPx;                  $('fsVal').textContent = state.fontPx + 'px';
 render();
 
 })();
