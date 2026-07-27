@@ -34,9 +34,9 @@
 }
 
 
-/* ── 테마 ── 다크(기본) / 파스텔(민트·라벤더). data-theme 으로 갈아끼움 ────── */
+/* ── 색 ─────────────────────────────────────────────────────── */
 :root{
-  --bg:#0d0d0f; --bg2:#0d0d0f;
+  --bg:#0d0d0f;
   --fg:#f2f2f4; --fgDim:#9a9aa6; --fgFaint:#6e6e7a; --fgGhost:#55555f;
   --card:#17171b; --line:#232329; --sunk:#101014;
   --btn:#22222a; --btnLine:#2e2e36; --btnActive:#2c2c35;
@@ -45,28 +45,13 @@
   --track:#33333c; --knob:#f2f2f4; --knobLine:transparent;
   --ring:#f2f2f4; --swLine:rgba(255,255,255,.2);
   --scrim:rgba(0,0,0,.82); --shadow:rgba(0,0,0,.55);
-  --stageBg:transparent; --stagePad:0px; --stageFg:#5e5e6a;
-}
-:root[data-theme="pastel"]{
-  --bg:#F4F1FB; --bg2:#EAF6F3;
-  --fg:#2F2A47; --fgDim:#6E688B; --fgFaint:#8B85A6; --fgGhost:#A8A2BE;
-  --card:#FFFFFF; --line:#E6E1F3; --sunk:#F8F6FD;
-  --btn:#FFFFFF; --btnLine:#E1DCF0; --btnActive:#F0ECFB;
-  --accent:#A9E5D6; --accentFg:#15453B; --accentActive:#94DCC9;
-  --segOn:#DCD4F5; --segOnFg:#2F2A47;
-  --track:#E2DDF2; --knob:#8B7FC7; --knobLine:#FFFFFF;
-  --ring:#7A6CC4; --swLine:rgba(47,42,71,.18);
-  --scrim:rgba(47,42,71,.55); --shadow:rgba(120,110,170,.28);
-  /* 사진 둘레는 중립 회색으로 — 파스텔 바탕이 사진 색 판단을 흐리지 않도록 */
-  --stageBg:#43434B; --stagePad:12px; --stageFg:#C4C1D2;
+  --stageFg:#5e5e6a;
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
   background:var(--bg); color:var(--fg);
-  background-image:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);
-  background-attachment:fixed;
   font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",system-ui,"Segoe UI",Roboto,sans-serif;
   font-size:15px; line-height:1.45;
   padding:calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 14px)
@@ -85,16 +70,18 @@ h1 small{
 @media (max-width:430px){ h1 small{display:none} }
 
 /* ── 미리보기 ─────────────────────────────────────────────── */
-.previewWrap{display:flex;flex-direction:column;gap:10px;background:var(--stageBg);padding:var(--stagePad);border-radius:18px;transition:background .2s}
+.previewWrap{display:flex;flex-direction:column;gap:10px}
 .stage{
   --ar:0.8; --maxh:47vh;
   position:relative; width:min(100%, calc(var(--maxh) * var(--ar))); aspect-ratio:var(--ar);
   margin:0 auto; border-radius:14px; overflow:hidden; background:#000;
-  box-shadow:0 8px 30px var(--shadow);
+  box-shadow:0 6px 16px var(--shadow);
+  contain:paint;
 }
 @supports (height:1svh){ .stage{--maxh:47svh} }
 @media (max-height:660px){ .stage{--maxh:40svh} }
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.stage:not(.has-img) canvas{touch-action:auto}
 .empty{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:10px;color:var(--stageFg);font-size:13px;text-align:center;padding:20px;pointer-events:none
@@ -197,7 +184,7 @@ h1 small{
 .btn.sm{width:auto;padding:6px 11px;font-size:12px;font-weight:600;border-radius:8px}
 .btnrow{display:flex;gap:8px}
 .btnrow .btn{flex:1 1 0;width:auto;min-width:0}
-.btnrow .btn.narrow{flex:0 0 auto;width:auto;white-space:nowrap;padding-left:18px;padding-right:18px}
+.btnrow .btn.narrow{flex:0 0 auto;width:auto;white-space:nowrap;padding-left:13px;padding-right:13px}
 .btnrow .btn.narrow[hidden]{display:none}
 
 textarea{
@@ -210,6 +197,8 @@ textarea:focus{border-color:var(--ring)}
 .hint{font-size:11.5px;color:var(--fgFaint);margin:8px 0 0}
 
 #titleCard[hidden]{display:none}
+#title::placeholder{font-size:18px;color:var(--fgFaint);opacity:1}
+#title::-webkit-input-placeholder{font-size:18px;color:var(--fgFaint)}
 #title{
   min-height:calc(2 * 1.4em + 24px);
   font-family:'NanumHaNaSonGeurSsi','NanumSquareNeo',-apple-system,"Apple SD Gothic Neo",sans-serif;
@@ -232,13 +221,6 @@ textarea:focus{border-color:var(--ring)}
 .photoRow{display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap}
 .photoRow[hidden]{display:none}
 .photoRow .cap{font-size:11px;color:var(--fgFaint);font-weight:600;flex:0 0 auto}
-
-/* 테마 토글 */
-.themeBtn{
-  flex:0 0 auto;width:32px;height:32px;border-radius:50%;padding:0;cursor:pointer;
-  border:1px solid var(--btnLine);background:var(--btn);color:var(--fg);
-  font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center
-}
 
 /* 스포이드 */
 .stage.picking canvas{cursor:crosshair}
@@ -270,8 +252,9 @@ textarea:focus{border-color:var(--ring)}
 input[type=range]{
   -webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;
   margin:0;display:block;cursor:pointer;
-  /* 스크롤 제스처와 경합하지 않도록 → 모바일에서 끌 때 끊김 방지 */
-  touch-action:none
+  /* 가로로 끌면 값 조절, 세로로 쓸면 페이지 스크롤.
+     none 으로 두면 슬라이더 위에서 화면이 아예 안 움직여 '먹통' 처럼 느껴진다 */
+  touch-action:pan-y
 }
 input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--track)}
 input[type=range]::-webkit-slider-thumb{
@@ -322,7 +305,7 @@ footer{font-size:11px;color:var(--fgGhost);text-align:center;line-height:1.6;mar
 <body>
 <div class="wrap">
 
-  <h1><span class="dot"></span><span class="ttl">인스타 그라데이션 텍스트</span><small>사진은 기기 밖으로 나가지 않습니다</small><button type="button" class="themeBtn" id="themeBtn" aria-label="테마 바꾸기">☾</button></h1>
+  <h1><span class="dot"></span><span class="ttl">인스타 그라데이션 텍스트</span><small>사진은 기기 밖으로 나가지 않습니다</small></h1>
 
   <!-- 1. 비율 토글 -->
   <div class="card">
@@ -339,6 +322,7 @@ footer{font-size:11px;color:var(--fgGhost);text-align:center;line-height:1.6;mar
     <div class="btnrow">
       <button type="button" class="btn" id="pick">사진 선택</button>
       <button type="button" class="btn narrow" id="addMore" hidden>+ 추가</button>
+      <button type="button" class="btn narrow ghost" id="clearAll" hidden>전체 삭제</button>
     </div>
     <div class="row">
       <div class="label">
@@ -776,6 +760,16 @@ function busy(msg){
 
 $('pick').addEventListener('click', function(){ openPicker(false); });
 $('addMore').addEventListener('click', function(){ openPicker(true); });
+$('clearAll').addEventListener('click', function(){
+  if (!shots.length) return;
+  if (!window.confirm('불러온 사진 ' + shots.length + '장을 모두 지울까요?\n입력한 텍스트와 제목도 함께 사라집니다.')) return;
+  if (picking) stopPicking();
+  setJiggle(false);
+  shots = []; cur = 0; gen++; inflight.clear(); pcache.clear();
+  state.title = ''; $('title').value = '';
+  buildStrip(); syncAll(); refreshPhotoColors(); render();
+  toast('사진을 모두 지웠습니다');
+});
 
 var appendMode = false;
 function openPicker(append){
@@ -1081,6 +1075,7 @@ function syncAll(){
   $('save').disabled = n === 0;
   $('save').textContent = n > 1 ? (n + '장 전체 저장') : 'PNG로 저장';
   $('addMore').hidden = n === 0;
+  $('clearAll').hidden = n === 0;
   $('pick').textContent = n === 0 ? '사진 선택' : '사진 다시 선택';
 
   var w = $('whichShot');
@@ -1661,29 +1656,6 @@ try {
   addLink('manifest', 'data:application/manifest+json;base64,' +
     btoa(unescape(encodeURIComponent(JSON.stringify(mf)))));
 } catch(_){}
-
-/* ── 테마 (다크 / 파스텔) ── */
-var THEME_KEY = 'insta-grad-theme';
-function applyTheme(name){
-  var pastel = name === 'pastel';
-  document.documentElement.setAttribute('data-theme', pastel ? 'pastel' : 'dark');
-  $('themeBtn').textContent = pastel ? '☾' : '☀';
-  $('themeBtn').setAttribute('aria-label', pastel ? '어두운 테마로' : '파스텔 테마로');
-  var m = document.querySelector('meta[name=theme-color]');
-  if (m) m.setAttribute('content', pastel ? '#F4F1FB' : '#0d0d0f');
-  var cs2 = document.querySelector('meta[name=color-scheme]');
-  if (cs2) cs2.setAttribute('content', pastel ? 'light' : 'dark');
-  try { localStorage.setItem(THEME_KEY, pastel ? 'pastel' : 'dark'); } catch(_){}
-  render();
-}
-$('themeBtn').addEventListener('click', function(){
-  applyTheme(document.documentElement.getAttribute('data-theme') === 'pastel' ? 'dark' : 'pastel');
-});
-(function(){
-  var saved = null;
-  try { saved = localStorage.getItem(THEME_KEY); } catch(_){}
-  applyTheme(saved === 'pastel' ? 'pastel' : 'dark');
-})();
 
 /* ── 초기화 (기본값을 화면에 반영) ── */
 stage.style.setProperty('--ar', String(state.ratio));
