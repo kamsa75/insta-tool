@@ -593,18 +593,21 @@ function drawScene(ctx, W, H, sh, src, hq, isFirst){
     }
 
     var padX = tfs*0.30, padY = tfs*0.16, r = BOX_RADIUS * k;
+    /* 박스가 있으면 박스의 왼쪽 끝을 본문 글자와 같은 선에 두고,
+       글자를 안쪽 여백만큼 밀어 넣는다 (박스만 툭 튀어나와 보이지 않도록) */
+    var tx = state.titleBox ? left + padX : left;
     for (var t=tLines.length-1; t>=0; t--){
       var line = tLines[t];
       var bl = tBottom - (tLines.length-1-t) * tlh;
       if (state.titleBox && line.trim()){
         var tw = ctx.measureText(line).width;
         ctx.fillStyle = state.titleBoxColor;
-        roundRect(ctx, left - padX, bl - fm.asc - padY,
+        roundRect(ctx, left, bl - fm.asc - padY,
                   tw + padX*2, fm.asc + fm.desc + padY*2, r);
         ctx.fill();
       }
       ctx.fillStyle = state.titleColor;
-      ctx.fillText(line, left, bl);
+      ctx.fillText(line, tx, bl);
     }
   }
   ctx.restore();
