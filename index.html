@@ -74,14 +74,14 @@ h1 small{
 /* ── 미리보기 ─────────────────────────────────────────────── */
 .previewWrap{display:flex;flex-direction:column;gap:10px}
 .stage{
-  --ar:0.8; --maxh:47vh;
+  --ar:0.8; --maxh:66vh;
   position:relative; width:min(100%, calc(var(--maxh) * var(--ar))); aspect-ratio:var(--ar);
   margin:0 auto; border-radius:14px; overflow:hidden; background:#000;
   box-shadow:0 6px 16px var(--shadow);
   contain:paint;
 }
-@supports (height:1svh){ .stage{--maxh:47svh} }
-@media (max-height:660px){ .stage{--maxh:40svh} }
+@supports (height:1svh){ .stage{--maxh:66svh} }
+@media (max-height:660px){ .stage{--maxh:56svh} }
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .stage:not(.has-img) canvas{touch-action:auto}
 .empty{
