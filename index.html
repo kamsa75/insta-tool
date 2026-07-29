@@ -368,8 +368,8 @@ footer{font-size:11px;color:var(--fgGhost);text-align:center;line-height:1.6;mar
     <textarea id="title" rows="2" spellcheck="false" autocapitalize="off"
       placeholder="제목을 입력하세요"></textarea>
     <div class="row">
-      <div class="label"><span>제목 크기</span><span class="val" id="tsVal">120px</span></div>
-      <input type="range" id="ts" min="40" max="260" step="1" value="120">
+      <div class="label"><span>제목 크기</span><span class="val" id="tsVal">77px</span></div>
+      <input type="range" id="ts" min="40" max="260" step="1" value="77">
     </div>
     <div class="row">
       <div class="label"><span>제목 색</span><span class="val" id="tcVal">#FFFFFF</span></div>
@@ -476,7 +476,7 @@ var state = {
   weight: 800,
   /* 제목 — 사진이 아니라 '맨 앞 자리'에 붙는다. 순서를 바꿔도 항상 첫 장에 남음 */
   title: '',
-  titlePx: 120,
+  titlePx: 77,
   titleColor: '#FFFFFF',
   titleBox: false,
   titleBoxColor: '#000000'
@@ -581,9 +581,12 @@ function drawScene(ctx, W, H, sh, src, hq, isFirst){
   var tLines = isFirst ? splitLines(state.title) : [];
   if (tLines.length){
     var tfs = state.titlePx * k;
-    var tlh = tfs * (state.titleBox ? 1.5 : 1.2);
     ctx.font = '400 ' + tfs + 'px ' + TITLE_STACK;
     var fm = textMetrics(ctx, tLines, tfs);
+    var padX = tfs*0.30, padY = tfs*0.16, r = BOX_RADIUS * k;
+    var boxH = fm.asc + fm.desc + padY*2;
+    /* 박스를 넣으면 줄 간격을 박스 높이와 같게 잡아, 두 줄일 때 위아래 박스가 딱 붙는다 */
+    var tlh = state.titleBox ? boxH : tfs*1.2;
 
     /* 본문 첫 줄 위쪽 여백만큼 띄운다 */
     var tBottom = bottom;
@@ -592,7 +595,6 @@ function drawScene(ctx, W, H, sh, src, hq, isFirst){
       tBottom = bodyTop - tfs*0.30 - fm.desc - (state.titleBox ? tfs*0.18 : 0);
     }
 
-    var padX = tfs*0.30, padY = tfs*0.16, r = BOX_RADIUS * k;
     /* 박스가 있으면 박스의 왼쪽 끝을 본문 글자와 같은 선에 두고,
        글자를 안쪽 여백만큼 밀어 넣는다 (박스만 툭 튀어나와 보이지 않도록) */
     var tx = state.titleBox ? left + padX : left;
@@ -602,8 +604,7 @@ function drawScene(ctx, W, H, sh, src, hq, isFirst){
       if (state.titleBox && line.trim()){
         var tw = ctx.measureText(line).width;
         ctx.fillStyle = state.titleBoxColor;
-        roundRect(ctx, left, bl - fm.asc - padY,
-                  tw + padX*2, fm.asc + fm.desc + padY*2, r);
+        roundRect(ctx, left, bl - fm.asc - padY, tw + padX*2, boxH, r);
         ctx.fill();
       }
       ctx.fillStyle = state.titleColor;
