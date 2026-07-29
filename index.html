@@ -412,8 +412,8 @@ footer{font-size:11px;color:var(--fgGhost);text-align:center;line-height:1.6;mar
       <input type="range" id="go" min="0" max="90" step="1" value="75">
     </div>
     <div class="row">
-      <div class="label"><span>텍스트 크기</span><span class="val" id="fsVal">55px</span></div>
-      <input type="range" id="fs" min="24" max="160" step="1" value="55">
+      <div class="label"><span>텍스트 크기</span><span class="val" id="fsVal">40px</span></div>
+      <input type="range" id="fs" min="24" max="160" step="1" value="40">
     </div>
     <div class="row">
       <div class="label">폰트 굵기</div>
@@ -472,7 +472,7 @@ var state = {
   ratio: 0.8,      // 프레임 가로/세로 비 (1 = 1:1, 0.8 = 4:5)
   gradH: 0.60,     // 그라데이션 높이 (이미지 높이 대비)
   gradO: 0.75,     // 그라데이션 최대 불투명도
-  fontPx: 55,      // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
+  fontPx: 40,      // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
   weight: 800,
   /* 제목 — 사진이 아니라 '맨 앞 자리'에 붙는다. 순서를 바꿔도 항상 첫 장에 남음 */
   title: '',
@@ -1244,9 +1244,10 @@ makePicker('box', $('tbcSw'), $('tbcPhoto'), $('tbcPhotoRow'),
   function(c){ state.titleBoxColor = c; $('tbcVal').textContent = c.toUpperCase(); });
 
 /* ── 사진에서 대표색 뽑기 ──
-   작게 줄인 뒤 색을 굵게 뭉쳐 세고, 서로 너무 비슷한 색은 걸러 6개만 남긴다 */
+   비슷한 색을 평균 내면 채도가 죽어 칙칙해진다. 그래서 색상(hue)만 사진에서 가져오고,
+   채도·밝기는 '제목 배경으로 썼을 때 예쁜' 범위로 다시 잡아준다. */
 function photoPalette(src, want){
-  var N = 64;
+  var N = 72;
   var c = document.createElement('canvas');
   c.width = N; c.height = N;
   var x = c.getContext('2d');
@@ -1254,32 +1255,97 @@ function photoPalette(src, want){
   var d;
   try { d = x.getImageData(0, 0, N, N).data; } catch(_){ return []; }
 
-  var bins = {};
-  for (var i=0;i<d.length;i+=4){
-    var r=d[i], g=d[i+1], b=d[i+2];
-    var mx=Math.max(r,g,b), mn=Math.min(r,g,b);
-    var key = ((r>>4)<<8) | ((g>>4)<<4) | (b>>4);
-    var o = bins[key] || (bins[key] = {n:0,r:0,g:0,b:0,s:0});
-    o.n++; o.r+=r; o.g+=g; o.b+=b;
-    o.s += (mx ? (mx-mn)/mx : 0);           // 선명한 색에 가산점
-  }
-  var list = [];
-  for (var k in bins){
-    var o = bins[k];
-    list.push({r:o.r/o.n|0, g:o.g/o.n|0, b:o.b/o.n|0, w:o.n * (1 + (o.s/o.n)*1.4)});
-  }
-  list.sort(function(a,b){ return b.w - a.w; });
+  var BINS = 36, SPAN = 360 / BINS;
+  var w = new Array(BINS), sw = new Array(BINS), lw = new Array(BINS), hw = new Array(BINS);
+  for (var i=0;i<BINS;i++){ w[i]=0; sw[i]=0; lw[i]=0; hw[i]=0; }
 
-  var out = [];
-  for (var j=0;j<list.length && out.length<want;j++){
-    var p = list[j], ok = true;
-    for (var m=0;m<out.length;m++){
-      var q = out[m];
-      if (Math.abs(p.r-q.r) + Math.abs(p.g-q.g) + Math.abs(p.b-q.b) < 58){ ok = false; break; }
-    }
-    if (ok) out.push(p);
+  var grayL = 0, grayN = 0;
+  for (var p=0;p<d.length;p+=4){
+    var hsl = rgbHsl(d[p], d[p+1], d[p+2]);
+    var h = hsl[0], sa = hsl[1], li = hsl[2];
+    grayL += li; grayN++;
+    if (li < 0.10 || li > 0.94) continue;   // 그림자·하이라이트는 색을 못 믿는다
+    if (sa < 0.10) continue;                // 무채색은 제외
+    var b = Math.floor(h / SPAN) % BINS;
+    var wt = sa * sa;                       // 선명한 픽셀일수록 크게 반영
+    w[b] += wt; sw[b] += sa*wt; lw[b] += li*wt; hw[b] += h*wt;
   }
-  return out.map(function(p){ return rgbHex(p.r, p.g, p.b); });
+
+  var order = [];
+  for (var b2=0;b2<BINS;b2++) if (w[b2] > 0) order.push(b2);
+  order.sort(function(a,b){ return w[b] - w[a]; });
+
+  var out = [], hues = [], tone = [];
+  for (var k=0;k<order.length && out.length<want;k++){
+    var b3 = order[k];
+    var hue = hw[b3] / w[b3];
+    var far = true;
+    for (var m=0;m<hues.length;m++){
+      var dh = Math.abs(hue - hues[m]);
+      if (dh > 180) dh = 360 - dh;
+      if (dh < 26){ far = false; break; }    // 비슷한 색상은 한 번만
+    }
+    if (!far) continue;
+    hues.push(hue);
+    var avgS = sw[b3] / w[b3], avgL = lw[b3] / w[b3];
+    /* 배경 박스로 썼을 때 흰 글씨가 잘 얹히면서도 선명하게 보이는 범위 */
+    var S = clamp(avgS * 0.90 + 0.42, 0.62, 0.86);
+    var L = clamp(avgL * 0.45 + 0.30, 0.44, 0.60);
+    var rgb = hslRgb(hue, S, L);
+    out.push(rgbHex(rgb[0], rgb[1], rgb[2]));
+    tone.push([hue, S, L]);
+  }
+
+  /* 사진에 색이 몇 가지 없으면 칸이 휑해진다. 찾은 색상 그대로
+     밝은 톤 / 깊은 톤을 덧붙여 채운다 (사진에 없던 색을 지어내지는 않음) */
+  var steps = [0.16, -0.13, 0.28];
+  for (var v=0; v<steps.length && out.length<want; v++){
+    for (var t2=0; t2<tone.length && out.length<want; t2++){
+      var tn = tone[t2];
+      var L2 = clamp(tn[2] + steps[v], 0.30, 0.80);
+      var S2 = clamp(tn[1] + (steps[v] > 0 ? -0.05 : 0.04), 0.55, 0.90);
+      var rgb2 = hslRgb(tn[0], S2, L2);
+      var hex2 = rgbHex(rgb2[0], rgb2[1], rgb2[2]);
+      if (out.indexOf(hex2) < 0) out.push(hex2);
+    }
+  }
+
+  /* 흑백에 가까운 사진이면 색상 자체가 없으니, 밝기만 살린 무채색으로 */
+  if (!out.length && grayN){
+    var g = grayL / grayN;
+    [0.28, 0.5, 0.72].forEach(function(t){
+      var v = Math.round(clamp(g*0.4 + t*0.6, 0.12, 0.9) * 255);
+      out.push(rgbHex(v, v, v));
+    });
+  }
+  return out;
+}
+
+/* RGB ↔ HSL */
+function rgbHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  var mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, h=0, s=0, dd=mx-mn;
+  if (dd){
+    s = l > 0.5 ? dd/(2-mx-mn) : dd/(mx+mn);
+    if (mx===r)      h = (g-b)/dd + (g<b ? 6 : 0);
+    else if (mx===g) h = (b-r)/dd + 2;
+    else             h = (r-g)/dd + 4;
+    h *= 60;
+  }
+  return [h, s, l];
+}
+function hslRgb(h,s,l){
+  h = ((h % 360) + 360) % 360 / 360;
+  if (!s){ var v = Math.round(l*255); return [v,v,v]; }
+  var q = l < 0.5 ? l*(1+s) : l+s-l*s, p2 = 2*l - q;
+  var f = function(t){
+    if (t<0) t+=1; if (t>1) t-=1;
+    if (t < 1/6) return p2 + (q-p2)*6*t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p2 + (q-p2)*(2/3-t)*6;
+    return p2;
+  };
+  return [Math.round(f(h+1/3)*255), Math.round(f(h)*255), Math.round(f(h-1/3)*255)];
 }
 function rgbHex(r,g,b){
   return '#' + [r,g,b].map(function(v){
