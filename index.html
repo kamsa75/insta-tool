@@ -82,8 +82,26 @@ h1 small{
 }
 @supports (height:1svh){ .stage{--maxh:66svh} }
 @media (max-height:660px){ .stage{--maxh:56svh} }
-.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-.stage:not(.has-img) canvas{touch-action:auto}
+/* 기본은 잠김 — 사진 위에서도 페이지가 그대로 스크롤된다.
+   자물쇠를 풀었을 때(또는 스포이드 중일 때)만 캔버스가 손가락을 가져간다 */
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:auto}
+.stage.unlocked canvas,.stage.picking canvas{touch-action:none}
+/* 캔버스가 스테이지를 덮어서 outline 은 가려진다 → 캔버스 위 레이어로 테두리를 그린다 */
+.stage.unlocked::after{
+  content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+  border:2px solid var(--ring);border-radius:14px
+}
+.lockBtn{
+  position:absolute;right:10px;top:10px;z-index:3;
+  width:38px;height:38px;border-radius:50%;border:0;padding:0;cursor:pointer;
+  background:rgba(0,0,0,.55);color:#fff;font-size:16px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)
+}
+.lockBtn[hidden]{display:none}
+.stage.unlocked .lockBtn{background:var(--ring);color:#101014}
+.cropHint{font-size:11.5px;color:var(--stageFg);text-align:center;margin:0}
+.cropHint[hidden]{display:none}
 .empty{
   position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:10px;color:var(--stageFg);font-size:13px;text-align:center;padding:20px;pointer-events:none
@@ -91,7 +109,7 @@ h1 small{
 .empty svg{opacity:.5}
 .stage.has-img .empty{display:none}
 .busy{
-  position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;
+  position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.62);color:#e8e8ec;font-size:13px;font-weight:600;letter-spacing:-.01em
 }
 .busy[hidden]{display:none}
@@ -350,7 +368,9 @@ footer{font-size:11px;color:var(--fgGhost);text-align:center;line-height:1.6;mar
       </div>
       <div class="busy" id="busy" hidden></div>
       <div class="pickHint" id="pickHint" hidden>사진을 문질러 색을 고르세요</div>
+      <button type="button" class="lockBtn" id="lockBtn" hidden aria-pressed="false">🔒</button>
     </div>
+    <p class="cropHint" id="cropHint" hidden></p>
     <div class="strip" id="strip" hidden></div>
     <div class="reorderBar" id="reorderBar" hidden>
       <span>끌어서 순서를 바꾸세요</span>
@@ -800,6 +820,7 @@ function loadFiles(files, append){
   if (!files.length){ toast('최대 ' + MAX_SHOTS + '장까지 담을 수 있습니다'); return; }
 
   if (!append){ shots = []; cur = 0; pcache.clear(); inflight.clear(); gen++; }
+  setUnlocked(false);
   var startAt = shots.length;
 
   busy('사진 불러오는 중… 0/' + files.length);
@@ -1082,6 +1103,7 @@ function syncAll(){
   $('save').textContent = n > 1 ? (n + '장 전체 저장') : 'PNG로 저장';
   $('addMore').hidden = n === 0;
   $('clearAll').hidden = n === 0;
+  updateCropHint();
   $('pick').textContent = n === 0 ? '사진 선택' : '사진 다시 선택';
 
   var w = $('whichShot');
@@ -1451,6 +1473,31 @@ function setZoom(z, u, v){
   render();
 }
 
+/* ── 사진 잠금 ──
+   기본은 잠김. 잠겨 있으면 사진 위에서 쓸어도 페이지가 스크롤될 뿐 사진은 안 움직인다.
+   확대/축소 슬라이더와 재설정은 잠금과 무관하게 언제든 동작한다. */
+var unlocked = false;
+
+function setUnlocked(v){
+  unlocked = !!v;
+  stage.classList.toggle('unlocked', unlocked);
+  var b = $('lockBtn');
+  b.textContent = unlocked ? '🔓' : '🔒';
+  b.setAttribute('aria-pressed', String(unlocked));
+  b.setAttribute('aria-label', unlocked ? '사진 잠그기' : '사진 위치 조정하기');
+  if (!unlocked){ drag = null; pinch = null; }
+  updateCropHint();
+}
+function updateCropHint(){
+  var on = shots.length > 0;
+  $('lockBtn').hidden = !on;
+  $('cropHint').hidden = !on;
+  $('cropHint').textContent = unlocked
+    ? '끌어서 위치를 잡고, 두 손가락으로 확대하세요 · 다 되면 자물쇠를 눌러 잠그세요'
+    : '사진 위에서도 화면이 스크롤됩니다 · 위치를 바꾸려면 자물쇠를 누르세요';
+}
+$('lockBtn').addEventListener('click', function(){ setUnlocked(!unlocked); });
+
 /* ── 드래그 / 핀치 ── */
 var drag = null, pinch = null;
 
@@ -1465,6 +1512,7 @@ function framePt(clientX, clientY){
 cv.addEventListener('touchstart', function(e){
   var sh = cs(); if (!sh) return;
   if (picking){ pickAt(e.touches[0].clientX, e.touches[0].clientY, false); e.preventDefault(); return; }
+  if (!unlocked) return;                    // 잠김 → 페이지 스크롤에 맡긴다
   if (e.touches.length === 1){
     var p = framePt(e.touches[0].clientX, e.touches[0].clientY);
     drag = { u:p.u, v:p.v, ox:sh.ox, oy:sh.oy };
@@ -1483,6 +1531,7 @@ cv.addEventListener('touchstart', function(e){
 cv.addEventListener('touchmove', function(e){
   var sh = cs(); if (!sh) return;
   if (picking){ pickAt(e.touches[0].clientX, e.touches[0].clientY, false); e.preventDefault(); return; }
+  if (!unlocked) return;
   if (pinch && e.touches.length === 2){
     var dx = (e.touches[0].clientX - e.touches[1].clientX);
     var dy = (e.touches[0].clientY - e.touches[1].clientY);
@@ -1518,6 +1567,7 @@ cv.addEventListener('touchcancel', endTouch);
 cv.addEventListener('mousedown', function(e){
   var sh = cs(); if (!sh) return;
   if (picking){ pickAt(e.clientX, e.clientY, true); e.preventDefault(); return; }
+  if (!unlocked) return;
   var p = framePt(e.clientX, e.clientY);
   drag = { u:p.u, v:p.v, ox:sh.ox, oy:sh.oy };
   e.preventDefault();
@@ -1533,7 +1583,7 @@ window.addEventListener('mousemove', function(e){
 });
 window.addEventListener('mouseup', function(){ drag = null; });
 cv.addEventListener('wheel', function(e){
-  if (!cs()) return;
+  if (!cs() || !unlocked) return;
   e.preventDefault();
   var p = framePt(e.clientX, e.clientY);
   setZoom(cs().zoom * (e.deltaY < 0 ? 1.08 : 1/1.08), p.u, p.v);
