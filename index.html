@@ -388,8 +388,8 @@ footer{font-size:11px;color:var(--fgGhost);text-align:center;line-height:1.6;mar
     <textarea id="title" rows="2" spellcheck="false" autocapitalize="off"
       placeholder="제목을 입력하세요"></textarea>
     <div class="row">
-      <div class="label"><span>제목 크기</span><span class="val" id="tsVal">77px</span></div>
-      <input type="range" id="ts" min="40" max="260" step="1" value="77">
+      <div class="label"><span>제목 크기</span><span class="val" id="tsVal">72px</span></div>
+      <input type="range" id="ts" min="40" max="260" step="1" value="72">
     </div>
     <div class="row">
       <div class="label"><span>제목 색</span><span class="val" id="tcVal">#FFFFFF</span></div>
@@ -438,8 +438,8 @@ footer{font-size:11px;color:var(--fgGhost);text-align:center;line-height:1.6;mar
     <div class="row">
       <div class="label">폰트 굵기</div>
       <div class="seg" id="weightSeg">
-        <button type="button" data-w="700" aria-pressed="false">Bold</button>
-        <button type="button" data-w="800" aria-pressed="true">ExtraBold</button>
+        <button type="button" data-w="700" aria-pressed="true">Bold</button>
+        <button type="button" data-w="800" aria-pressed="false">ExtraBold</button>
         <button type="button" data-w="900" aria-pressed="false">Heavy</button>
       </div>
     </div>
@@ -493,10 +493,10 @@ var state = {
   gradH: 0.60,     // 그라데이션 높이 (이미지 높이 대비)
   gradO: 0.75,     // 그라데이션 최대 불투명도
   fontPx: 40,      // 글자 크기 (가로 1080px 출력 기준 px — 비율을 바꿔도 동일)
-  weight: 800,
+  weight: 700,
   /* 제목 — 사진이 아니라 '맨 앞 자리'에 붙는다. 순서를 바꿔도 항상 첫 장에 남음 */
   title: '',
-  titlePx: 77,
+  titlePx: 72,
   titleColor: '#FFFFFF',
   titleBox: false,
   titleBoxColor: '#000000'
